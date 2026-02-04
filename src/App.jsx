@@ -1,98 +1,132 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+// Note: To use confetti, the Agent will need to run: npm install canvas-confetti
+import confetti from 'canvas-confetti';
 
 export default function App() {
   const [query, setQuery] = useState("");
+  const [progress, setProgress] = useState(12);
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { role: "bot", text: "Hello! I am your PolicyPath Tutor. Ask me anything about the Indian Constitution." }
+    { role: "bot", text: "Welcome back, Aspirant. Your streak is alive. Shall we master the Preamble today?", type: "mentor" }
   ]);
-  const [loading, setLoading] = useState(false);
-  const messagesEndRef = useRef(null);
+  const [displayedText, setDisplayedText] = useState(""); // For Typewriter Effect
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
+  // Typewriter Effect Logic (Option B)
   useEffect(() => {
-    scrollToBottom();
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.role === "bot") {
+      let i = 0;
+      setDisplayedText("");
+      const interval = setInterval(() => {
+        setDisplayedText((prev) => prev + lastMessage.text.charAt(i));
+        i++;
+        if (i >= lastMessage.text.length) clearInterval(interval);
+      }, 30); // Speed of the "Mentor's Voice"
+      return () => clearInterval(interval);
+    }
   }, [messages]);
 
-  const handleAsk = async () => {
-    if (!query.trim()) return;
-    
-    const userMessage = query.trim();
-    setLoading(true);
-    setMessages(prev => [...prev, { role: "user", text: userMessage }]);
+  const triggerCelebration = () => {
+    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#1D4ED8', '#60A5FA', '#FBBF24'] });
+  };
+
+  const handleAsk = (textToQuery = query) => {
+    if (!textToQuery) return;
+    setMessages(prev => [...prev, { role: "user", text: textToQuery }]);
     setQuery("");
 
-    // Mock Logic
     setTimeout(() => {
+      const newProgress = Math.min(progress + 8, 100);
+      if (newProgress >= 20 && progress < 20) triggerCelebration(); // Gamification trigger
+      setProgress(newProgress);
       setMessages(prev => [...prev, { 
         role: "bot", 
-        text: `Based on your question about "${userMessage}", I can tell you that PolicyPath AI is currently being configured to provide accurate legal information. In the meantime, did you know that the Indian Constitution is the longest written constitution of any sovereign country in the world?` 
+        text: `Mastering ${textToQuery} is a major step. This falls under Part III of the Constitution.`, 
+        citation: "Article 13: Laws inconsistent with or in derogation of the fundamental rights." 
       }]);
-      setLoading(false);
-    }, 1500);
+    }, 1000);
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-slate-50 font-sans">
-      {/* Professional Header */}
-      <header className="bg-blue-700 text-white p-4 shadow-md sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold tracking-tight">PolicyPath AI 🇮🇳</h1>
-          <div className="text-xs bg-blue-600 px-2 py-1 rounded-full border border-blue-400">Beta</div>
+    <div className="flex flex-col h-[100dvh] bg-slate-900 text-white font-sans overflow-hidden">
+      
+      {/* 1. GLASSMORPHISM HEADER */}
+      <header className="fixed top-0 w-full z-50 backdrop-blur-lg bg-blue-900/40 border-b border-white/10 p-5 shadow-2xl">
+        <div className="max-w-xl mx-auto flex justify-between items-center">
+          <div onClick={() => setSidebarOpen(true)} className="p-2 bg-white/10 rounded-lg active:scale-90 transition-transform">
+             <span className="text-xl">🏛️</span> 
+          </div>
+          <div className="text-center">
+            <h1 className="text-lg font-black tracking-tighter uppercase italic">PolicyPath AI</h1>
+            <div className="flex items-center gap-2 justify-center">
+              <div className="h-1.5 w-24 bg-white/10 rounded-full overflow-hidden border border-white/5">
+                <div className="h-full bg-gradient-to-r from-blue-400 to-cyan-400 transition-all duration-1000" style={{ width: `${progress}%` }}></div>
+              </div>
+              <span className="text-[10px] font-bold text-blue-300">{progress}%</span>
+            </div>
+          </div>
+          <div className="bg-orange-500/20 px-3 py-1 rounded-full border border-orange-500/40 text-[10px] font-black text-orange-400">5 🔥</div>
         </div>
       </header>
 
-      {/* Chat History */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {messages.map((m, i) => (
-            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] sm:max-w-[70%] p-4 rounded-2xl shadow-sm border ${
-                m.role === 'user' 
-                  ? 'bg-blue-600 text-white border-blue-500 rounded-tr-none' 
-                  : 'bg-white text-slate-800 border-slate-200 rounded-tl-none'
-              }`}>
-                <p className="text-sm sm:text-base leading-relaxed">{m.text}</p>
-              </div>
-            </div>
-          ))}
-          {loading && (
-            <div className="flex justify-start">
-              <div className="bg-white border border-slate-200 p-4 rounded-2xl rounded-tl-none shadow-sm flex items-center space-x-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
+      {/* 2. THE CONSTITUTIONAL VAULT (Sidebar) */}
+      <div className={`fixed inset-y-0 left-0 w-64 bg-slate-800/95 backdrop-blur-xl z-[60] transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out border-r border-white/10 p-6 shadow-2xl`}>
+        <button onClick={() => setSidebarOpen(false)} className="absolute top-4 right-4 text-slate-400">✕</button>
+        <h2 className="text-sm font-black text-blue-400 uppercase tracking-widest mb-6 mt-4">The Vault</h2>
+        <div className="space-y-4">
+          <div className="p-3 bg-white/5 rounded-xl border border-white/5 text-[11px] font-medium text-slate-300">✓ Preamble Mastery</div>
+          <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20 text-[11px] font-bold text-blue-400 italic">→ Union & Territory</div>
         </div>
       </div>
 
-      {/* Large Input Area */}
-      <div className="bg-white border-t p-4 pb-8 sm:pb-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <div className="max-w-4xl mx-auto flex gap-3">
-          <input 
-            className="flex-1 p-4 bg-slate-100 border-none rounded-2xl text-slate-900 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-base"
-            placeholder="Ask about the Indian Constitution..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
-            disabled={loading}
-          />
-          <button 
-            onClick={handleAsk}
-            disabled={loading || !query.trim()}
-            className={`px-6 rounded-2xl font-bold transition-all flex items-center justify-center ${
-              loading || !query.trim()
-                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                : 'bg-blue-700 text-white hover:bg-blue-800 active:scale-95 shadow-lg shadow-blue-200'
-            }`}
-          >
-            {loading ? '...' : 'Ask'}
-          </button>
+      {/* 3. CHAT AREA */}
+      <main className="flex-1 overflow-y-auto pt-32 pb-40 px-4">
+        <div className="max-w-xl mx-auto space-y-8">
+          {messages.map((m, i) => (
+            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
+              <div className={`max-w-[85%] p-5 rounded-3xl shadow-2xl ${
+                m.role === 'user' 
+                ? 'bg-blue-600 border border-blue-400/50 rounded-tr-none' 
+                : 'bg-white/5 backdrop-blur-md border border-white/10 rounded-tl-none'
+              }`}>
+                <p className="text-sm leading-relaxed font-medium">
+                  {i === messages.length - 1 && m.role === 'bot' ? displayedText : m.text}
+                </p>
+                {m.citation && (
+                  <div className="mt-4 pt-4 border-t border-white/10">
+                    <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Citation</span>
+                    <p className="text-[11px] text-slate-400 mt-1 italic font-serif">"{m.citation}"</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </main>
+
+      {/* 4. FLOATING INPUT BAR */}
+      <div className="fixed bottom-8 w-full px-4 z-50">
+        <div className="max-w-xl mx-auto">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar mb-4 px-2">
+            {["Article 13", "Mastery Quiz", "Drafting Comm."].map(chip => (
+              <button key={chip} onClick={() => handleAsk(chip)} className="whitespace-nowrap px-4 py-2 bg-white/5 backdrop-blur-md border border-white/10 rounded-full text-[10px] font-bold hover:bg-white/10 transition-colors uppercase tracking-tight">{chip}</button>
+            ))}
+          </div>
+          <div className="relative group">
+            <input 
+              className="w-full pl-6 pr-16 py-5 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2rem] text-sm focus:ring-4 focus:ring-blue-500/30 transition-all shadow-2xl placeholder:text-slate-500"
+              placeholder="Ask your Mentor..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleAsk()}
+            />
+            <button 
+              onClick={() => handleAsk()}
+              className="absolute right-3 top-3 bg-blue-600 p-3 rounded-full shadow-lg active:scale-90 transition-transform hover:bg-blue-500"
+            >
+              🚀
+            </button>
+          </div>
         </div>
       </div>
     </div>
