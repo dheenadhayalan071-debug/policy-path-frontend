@@ -1,1 +1,32 @@
 @import "tailwindcss";
+@keyframes gradientWave {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-wave {
+  background: linear-gradient(-45deg, #2D0B5A, #4B0082, #1A0633, #0F041C);
+  background-size: 400% 400%;
+  animation: gradientWave 15s ease infinite;
+}
+@keyframes gradientWave {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-wave {
+  background: linear-gradient(-45deg, #1A0633, #4B0082, #2D0B5A, #0F041C);
+  background-size: 400% 400%;
+  animation: gradientWave 12s ease infinite;
+}
+
+@theme {
+  --font-serif: "Cinzel", serif;
+  --font-sans: "Inter", sans-serif;
+}
+
+body {
+  font-family: var(--font-sans); /* Default body font */
+}
