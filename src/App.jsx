@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 
-const BACKEND_URL = "https://your-backend-url.replit.app";
+const BACKEND_URL = "https://policy-path-ai-backend.onrender.com";
 
 const STORAGE_KEYS = {
   MESSAGES: 'pp_messages',
@@ -90,7 +90,7 @@ export default function App() {
       const response = await fetch(`${BACKEND_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: userQuery })
+        body: JSON.stringify({ user_query: userQuery })
       });
 
       if (!response.ok) throw new Error('API request failed');
