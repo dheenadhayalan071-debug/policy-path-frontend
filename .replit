@@ -15,6 +15,14 @@ build = ["npm", "run", "build"]
 publicDir = "dist"
 
 [[ports]]
+localPort = 3000
+externalPort = 3000
+
+[[ports]]
+localPort = 3001
+externalPort = 3001
+
+[[ports]]
 localPort = 5000
 externalPort = 80
 
@@ -37,10 +45,10 @@ args = "dev-server"
 name = "dev-server"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev -- --host 0.0.0.0 --port 5000"
 waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
