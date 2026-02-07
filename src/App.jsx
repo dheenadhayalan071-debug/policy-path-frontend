@@ -33,15 +33,9 @@ export default function App() {
     if (vData) setVault(vData);
 
     const { data: eData } = await supabase.from('exam_results').select('score, total_questions');
-    if (eData) setExamResults(eData);
-  }
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  // --- SAFETY LOGIC: HANDLES TIMEOUTS & PARSING ---
+    if (eData) setExam 
+      
+    // --- DIAGNOSTIC HANDLEASK (Paste this in App.jsx) ---
   const handleAsk = async () => {
     if (!query.trim() || loading) return;
     const userQuery = query.trim();
@@ -53,64 +47,79 @@ export default function App() {
     const context = `[History: User studied "${lastBot.slice(0, 50)}..."] User: "${userQuery}"`;
 
     try {
-      // 1. Fetch with Error Handling
       const res = await fetch(`${BACKEND_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_query: context, mode: "chat" })
       });
-
-      if (!res.ok) throw new Error("Server Busy");
-      
       const data = await res.json();
       let aiText = data.answer;
 
-      // 2. Try-Catch Parser (Prevent Vanishing)
-      try {
-        if (aiText.includes("||VAULT_START||")) {
-          const parts = aiText.split("||VAULT_START||");
-          const visibleText = parts[0].trim();
-          const hiddenPart = parts[1].split("||VAULT_END||")[0];
-          
-          let topicTitle = "New Topic";
-          if (hiddenPart.includes("Topic:")) {
-             topicTitle = hiddenPart.split("Topic:")[1].split("*")[0].split("\n")[0].replace(/[*_]/g, '').trim(); 
-          }
-
-          let topicNotes = hiddenPart
-              .replace(/Topic:.*?\n/i, '')
-              .replace(/\*\*Topic:.*?\*\*/, '')
-              .replace(/Summary:\s*/i, "")
-              .replace(/\*\*/g, '')
-              .trim();
-
-          const { error } = await supabase.from('vault').insert([{ 
-            title: topicTitle, status: 'Mastered', notes: topicNotes 
-          }]);
-
-          if (!error) {
-             confetti({ particleCount: 150, spread: 60 });
-             setMessages(prev => [...prev, { role: "bot", text: visibleText || "Topic Mastered & Saved! 📜", saved: true }]);
-             fetchData();
-          } else {
-             setMessages(prev => [...prev, { role: "bot", text: aiText + " (DB Save Failed)" }]);
-          }
-        } else {
-          setMessages(prev => [...prev, { role: "bot", text: aiText }]);
+      // 🕵️ DEBUGGER LOGIC
+      if (aiText.includes("||VAULT_START||")) {
+        const parts = aiText.split("||VAULT_START||");
+        const visibleText = parts[0].trim();
+        const hiddenPart = parts[1].split("||VAULT_END||")[0];
+        
+        // 1. Improved Parser (Removes ** stars effectively)
+        let topicTitle = "New Mastery";
+        if (hiddenPart.includes("Topic:")) {
+           topicTitle = hiddenPart.split("Topic:")[1]
+             .replace(/\*/g, '') // Remove all stars first
+             .split("\n")[0]     // Take the first line
+             .trim(); 
         }
-      } catch (parserError) {
-        console.error("Parser Failed:", parserError);
-        // Fallback: Just show the text, don't crash
+
+        let topicNotes = hiddenPart
+            .replace(/Topic:.*?\n/i, '')
+            .replace(/Summary:\s*/i, "")
+            .replace(/\*/g, '') 
+            .trim();
+
+        console.log("Attempting to save:", { topicTitle, topicNotes });
+
+        // 2. The Save Attempt
+        const { data: dbData, error } = await supabase.from('vault').insert([{ 
+          title: topicTitle, 
+          status: 'Mastered', 
+          notes: topicNotes 
+        }]).select();
+
+        // 3. DIAGNOSTIC ALERT SYSTEM
+        if (error) {
+            // 🚨 PRINT THE ERROR IN THE CHAT
+            console.error("Supabase Error:", error);
+            setMessages(prev => [...prev, { 
+              role: "bot", 
+              text: `❌ DATABASE ERROR:\nCode: ${error.code}\nMessage: ${error.message}\nDetails: ${error.details || 'None'}` 
+            }]);
+        } else {
+            // ✅ SUCCESS
+            confetti({ particleCount: 150, spread: 60 });
+            setMessages(prev => [...prev, { role: "bot", text: visibleText, saved: true }]);
+            fetchData(); 
+        }
+
+      } else {
         setMessages(prev => [...prev, { role: "bot", text: aiText }]);
       }
 
     } catch (e) {
-      console.error(e);
-      setMessages(prev => [...prev, { role: "bot", text: "⚠️ Network Timeout. The Brain is taking too long. Try a shorter answer!" }]);
+      setMessages(prev => [...prev, { role: "bot", text: `⚠️ NETWORK ERROR: ${e.message}` }]);
     } finally {
       setLoading(false);
     }
   };
+    Results(eData);
+  }
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // --- SAFETY LOGIC: HANDLES TIMEOUTS & PARSING ---
+  
 
   // --- TEST ENGINE ---
   const startTest = async () => {
