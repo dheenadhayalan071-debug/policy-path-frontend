@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { supabase } from './supabaseClient';
 
-const BACKEND_URL = "https://policy-path-backend.onrender.com"; 
+const BACKEND_URL = "https://policy-path-ai-backend.onrender.com"; 
 const STORAGE_KEYS = { MESSAGES: 'pp_messages_v2' };
 
 export default function App() {
