@@ -1,288 +1,317 @@
 import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
+import { supabase } from './supabaseClient';
 
-const BACKEND_URL = "https://policy-path-ai-backend.onrender.com";
-
-const STORAGE_KEYS = {
-  MESSAGES: 'pp_messages',
-  PROGRESS: 'pp_progress',
-  VAULT: 'pp_vault'
-};
+const BACKEND_URL = "https://policy-path-backend.onrender.com"; 
+const STORAGE_KEYS = { MESSAGES: 'pp_messages_v2' };
 
 export default function App() {
-  // Persistence Engine: Initialize from localStorage
+  // --- STATE ---
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.MESSAGES);
-    return saved ? JSON.parse(saved) : [
-      { role: "bot", text: "Welcome back, Aspirant. Your streak is alive. Shall we master the Preamble today?", type: "mentor", isHistory: true }
-    ];
+    return saved ? JSON.parse(saved) : [{ role: "bot", text: "I am ready. Let's master the Constitution.", type: "mentor" }];
   });
-
-  const [progress, setProgress] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.PROGRESS);
-    return saved ? JSON.parse(saved) : 12;
-  });
-
-  const [vault, setVault] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.VAULT);
-    return saved ? JSON.parse(saved) : [
-      { id: 1, title: "Preamble Mastery", status: "Mastered", date: "Feb 3" },
-      { id: 2, title: "Article 1-4", status: "In Progress", date: "Feb 4" }
-    ];
-  });
-
+  
+  const [vault, setVault] = useState([]);
+  const [examResults, setExamResults] = useState([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
-  const [displayedText, setDisplayedText] = useState("");
   const [activeTab, setActiveTab] = useState('home');
   const [selectedArticle, setSelectedArticle] = useState(null);
+  
+  // Test Portal State
+  const [testState, setTestState] = useState("idle"); // idle, loading, active, result
+  const [quiz, setQuiz] = useState([]);
+  const [currentQIndex, setCurrentQIndex] = useState(0);
+  const [score, setScore] = useState(0);
+
   const messagesEndRef = useRef(null);
 
-  // Auto-save hook
+  // --- INITIAL DATA FETCH ---
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  async function fetchData() {
+    // 1. Get Vault
+    const { data: vData } = await supabase.from('vault').select('*').order('id', { ascending: false });
+    if (vData) setVault(vData);
+
+    // 2. Get Analytics
+    const { data: eData } = await supabase.from('exam_results').select('score, total_questions');
+    if (eData) setExamResults(eData);
+  }
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
-    localStorage.setItem(STORAGE_KEYS.PROGRESS, JSON.stringify(progress));
-    localStorage.setItem(STORAGE_KEYS.VAULT, JSON.stringify(vault));
-  }, [messages, progress, vault]);
-
-  // Scroll to bottom
-  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, displayedText, activeTab]);
-
-  // Typewriter Effect
-  useEffect(() => {
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.role === "bot" && !lastMessage.isHistory) {
-      let i = 0;
-      setDisplayedText("");
-      const interval = setInterval(() => {
-        setDisplayedText((prev) => prev + lastMessage.text.charAt(i));
-        i++;
-        if (i >= lastMessage.text.length) clearInterval(interval);
-      }, 30);
-      return () => clearInterval(interval);
-    } else if (lastMessage?.role === "bot") {
-      setDisplayedText(lastMessage.text);
-    }
   }, [messages]);
 
-  const triggerCelebration = () => {
-    confetti({ 
-      particleCount: 150, 
-      spread: 70, 
-      origin: { y: 0.6 }, 
-      colors: ['#FBBF24', '#1D4ED8', '#60A5FA'] 
-    });
-  };
-
-  const handleAsk = async (textToQuery = query) => {
-    if (!textToQuery.trim() || loading) return;
-    
-    const userQuery = textToQuery.trim();
+  // --- CORE LOGIC: THE VAULT PARSER ---
+  const handleAsk = async () => {
+    if (!query.trim() || loading) return;
+    const userQuery = query.trim();
     setLoading(true);
     setQuery("");
-    
-    // Save user query
     setMessages(prev => [...prev, { role: "user", text: userQuery }]);
 
+    // Smart Context
+    const lastBot = messages.filter(m => m.role === 'bot').pop()?.text || "";
+    const context = `[History: User studied "${lastBot.slice(0, 50)}..."] User: "${userQuery}"`;
+
     try {
-      const response = await fetch(`${BACKEND_URL}/ask`, {
+      const res = await fetch(`${BACKEND_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_query: userQuery })
+        body: JSON.stringify({ user_query: context, mode: "chat" })
       });
+      const data = await res.json();
+      let aiText = data.answer;
 
-      if (!response.ok) throw new Error('API request failed');
+      // 🕵️ SECRET VAULT PARSER
+      if (aiText.includes("||VAULT_START||")) {
+        const parts = aiText.split("||VAULT_START||");
+        const visibleText = parts[0].trim();
+        const hiddenPart = parts[1].split("||VAULT_END||")[0];
+        
+        // Extract Title and Summary manually or use Regex
+        const titleMatch = hiddenPart.match(/\*\*Topic:\*\*(.*?)\n/);
+        const summaryMatch = hiddenPart.match(/\*\*Summary:\*\*(.*)/s);
+        
+        const topicTitle = titleMatch ? titleMatch[1].trim() : "New Topic";
+        const topicNotes = summaryMatch ? summaryMatch[1].trim() : hiddenPart;
 
-      const data = await response.json();
+        // 1. Save to Supabase
+        await supabase.from('vault').insert([{ 
+          title: topicTitle, 
+          status: 'Mastered', 
+          notes: topicNotes 
+        }]);
 
-      setMessages(prev => [...prev, { 
-        role: "bot", 
-        text: data.answer || "I am processing the legal frameworks...",
-        citation: data.citation || null,
-        isHistory: false
-      }]);
+        // 2. Show Confetti & Badge
+        confetti({ particleCount: 150, spread: 60 });
+        setMessages(prev => [...prev, { role: "bot", text: visibleText, saved: true }]);
+        fetchData(); // Refresh Vault UI
 
-      if (data.progress_boost) {
-        setProgress(prev => {
-          const next = Math.min(prev + data.progress_boost, 100);
-          triggerCelebration();
-          return next;
-        });
+      } else {
+        setMessages(prev => [...prev, { role: "bot", text: aiText }]);
       }
 
-    } catch (error) {
-      console.error("Mentor Error:", error);
-      setMessages(prev => [...prev, { 
-        role: "bot", 
-        text: "The path to knowledge occasionally faces obstacles, Aspirant. My connection to the central archives is momentarily unstable. Please, rephrase your query or wait a moment.",
-        isHistory: false
-      }]);
+    } catch (e) {
+      setMessages(prev => [...prev, { role: "bot", text: "Connection failed. Check internet." }]);
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="flex flex-col h-[100dvh] bg-slate-900 text-white font-['Inter',sans-serif] overflow-hidden animate-wave">
+  // --- CORE LOGIC: THE TEST ENGINE (10 Qs) ---
+  const startTest = async () => {
+    if (vault.length === 0) return alert("Vault is empty. Study first!");
+    setTestState("loading");
+    
+    const topics = vault.map(v => v.title).join(", ");
+    try {
+      const res = await fetch(`${BACKEND_URL}/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_query: topics, mode: "quiz" })
+      });
+      const data = await res.json();
       
-      {/* PRESTIGE HEADER */}
-      <header className="pt-8 pb-4 px-6 backdrop-blur-xl bg-black/30 border-b border-yellow-500/20 sticky top-0 z-50">
-        <div className="flex justify-between items-center max-w-xl mx-auto">
-          <div>
-            <h1 className="text-xl font-['Cinzel',serif] font-black italic tracking-tighter text-yellow-400">
-              POLICYPATH AI 🏛️
-            </h1>
-            <p className="text-[9px] font-['Inter',sans-serif] font-bold text-purple-200 uppercase tracking-[0.2em]">The Coach's Edition</p>
-          </div>
-          <div className="bg-yellow-500/20 px-3 py-1 rounded-full border border-yellow-500/50 text-[10px] font-['Inter',sans-serif] font-black text-yellow-500">
-            STREAK: 7🔥
-          </div>
-        </div>
+      // Clean JSON
+      const jsonStr = data.answer.replace(/```json|```/g, '').trim();
+      const questions = JSON.parse(jsonStr);
+      
+      setQuiz(questions.slice(0, 10)); // Ensure 10 max
+      setScore(0);
+      setCurrentQIndex(0);
+      setTestState("active");
+    } catch (e) {
+      setTestState("idle");
+      alert("Error generating test. Try again.");
+    }
+  };
+
+  const submitAnswer = (option) => {
+    if (option === quiz[currentQIndex].answer) setScore(s => s + 1);
+    
+    if (currentQIndex + 1 < quiz.length) {
+      setCurrentQIndex(i => i + 1);
+    } else {
+      finishTest();
+    }
+  };
+
+  const finishTest = async () => {
+    setTestState("result");
+    const finalScore = score + (quiz[currentQIndex].answer === quiz[currentQIndex].options[0] ? 0 : 0); // Logic handled in submit
+    
+    // Save Score
+    await supabase.from('exam_results').insert([{
+      score: score,
+      total_questions: quiz.length,
+      topics_covered: "Mixed Vault Test"
+    }]);
+    fetchData(); // Update Analytics
+  };
+
+  // --- CALCULATE ANALYTICS ---
+  const totalTests = examResults.length;
+  const avgScore = totalTests > 0 
+    ? Math.round(examResults.reduce((acc, curr) => acc + (curr.score / curr.total_questions) * 100, 0) / totalTests) 
+    : 0;
+
+  // --- RENDER ---
+  return (
+    <div className="flex flex-col h-[100dvh] bg-[#1a0b2e] text-white font-sans overflow-hidden">
+      
+      {/* HEADER */}
+      <header className="p-4 bg-[#2d1b4e] border-b border-purple-500/20 flex justify-between items-center z-50">
+        <h1 className="font-black italic text-yellow-400 text-lg">POLICYPATH AI 🏛️</h1>
+        <div className="text-[10px] font-bold bg-purple-800 px-2 py-1 rounded text-purple-200">BETA 2.0</div>
       </header>
 
-      {/* MAIN CONTENT AREA */}
-      <main className="flex-1 overflow-y-auto px-4 pt-6 pb-40">
-        <div className="max-w-xl mx-auto">
-          
-          {activeTab === 'home' && (
-            <div className="space-y-6">
-              {messages.map((m, i) => (
-                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in`}>
-                  <div className={`max-w-[88%] p-5 rounded-[2rem] shadow-2xl backdrop-blur-md ${
-                    m.role === 'user' ? 'bg-purple-700/60 border border-purple-400/30' : 'bg-white/10 border border-white/10'
-                  }`}>
-                    <p className="text-sm font-['Inter',sans-serif] font-medium leading-relaxed">
-                      {i === messages.length - 1 && m.role === 'bot' ? displayedText : m.text}
-                    </p>
-                    {m.citation && (
-                      <div className="mt-4 pt-3 border-t border-white/10">
-                        <span className="text-[9px] font-['Cinzel',serif] font-black text-yellow-500 uppercase tracking-widest">Citation</span>
-                        <p className="text-[11px] font-['Cinzel',serif] text-purple-200 mt-1 italic">"{m.citation}"</p>
-                      </div>
-                    )}
-                  </div>
+      <main className="flex-1 overflow-y-auto p-4 pb-24">
+        
+        {/* TAB: MENTOR */}
+        {activeTab === 'home' && (
+          <div className="space-y-4">
+            {messages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-purple-600 text-white' : 'bg-[#2d1b4e] text-gray-200 border border-purple-500/20'}`}>
+                  {m.text}
+                  {m.saved && (
+                    <div className="mt-3 pt-2 border-t border-white/10 flex items-center gap-2 text-yellow-400 text-[10px] font-black uppercase tracking-widest">
+                      <span>💾</span> Saved to Vault
+                    </div>
+                  )}
                 </div>
-              ))}
-              {loading && <div className="text-yellow-500 text-[10px] font-['Inter',sans-serif] font-black animate-pulse uppercase">Coach is synthesizing...</div>}
-              <div ref={messagesEndRef} />
-            </div>
-          )}
+              </div>
+            ))}
+            {loading && <div className="text-gray-500 text-xs animate-pulse pl-2">Mentor is thinking...</div>}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
 
-          {activeTab === 'vault' && (
-            <div className="space-y-4 animate-in fade-in">
-              <h2 className="text-lg font-['Cinzel',serif] font-black text-yellow-500 uppercase italic mb-6">The Constitutional Vault 📜</h2>
-              {vault.map(item => (
-                <div 
-                  key={item.id} 
-                  onClick={() => setSelectedArticle(item)}
-                  className="p-5 bg-white/5 rounded-3xl border border-white/10 flex justify-between items-center active:scale-95 transition-transform cursor-pointer shadow-lg"
-                >
-                  <div>
-                    <h4 className="text-sm font-['Inter',sans-serif] font-bold text-white">{item.title}</h4>
-                    <p className="text-[10px] text-purple-300 font-['Inter',sans-serif] font-medium uppercase mt-1">{item.date}</p>
-                  </div>
-                  <span className={`text-[10px] font-['Inter',sans-serif] font-black px-3 py-1 rounded-full ${item.status === 'Mastered' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-500'}`}>
-                    {item.status}
-                  </span>
+        {/* TAB: VAULT */}
+        {activeTab === 'vault' && (
+          <div className="space-y-4 animate-in fade-in">
+            <h2 className="text-xl font-black text-yellow-500 uppercase italic">Mastery Vault 📜</h2>
+            {vault.length === 0 ? <p className="text-gray-400 text-center mt-10">Vault is empty. Go study!</p> : vault.map(v => (
+              <div key={v.id} onClick={() => setSelectedArticle(v)} className="p-4 bg-[#2d1b4e] rounded-xl border border-purple-500/20 active:scale-95 transition-all">
+                <div className="flex justify-between items-center mb-1">
+                  <h3 className="font-bold text-white">{v.title}</h3>
+                  <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded uppercase">Mastered</span>
                 </div>
-              ))}
-            </div>
-          )}
+                <p className="text-xs text-gray-400 line-clamp-2">{v.notes}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
-          {activeTab === 'analytics' && (
-            <div className="space-y-8 animate-in slide-in-from-right-4">
-              <h2 className="text-lg font-['Cinzel',serif] font-black text-yellow-500 uppercase italic">Rank Projection 📈</h2>
-              <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
-                 <p className="text-purple-200">Current Progress: {progress}%</p>
-                 <div className="w-full bg-white/10 h-2 rounded-full mt-4">
-                   <div className="bg-yellow-500 h-full rounded-full transition-all duration-1000" style={{ width: `${progress}%` }}></div>
-                 </div>
+        {/* TAB: TEST PORTAL */}
+        {activeTab === 'test' && (
+          <div className="h-full flex flex-col items-center justify-center animate-in zoom-in">
+            {testState === 'idle' && (
+              <div className="text-center space-y-6">
+                <span className="text-6xl block">🎯</span>
+                <h2 className="text-2xl font-black text-white uppercase">Mock Test Zone</h2>
+                <p className="text-gray-400 text-sm px-6">Generate a 10-Question MCQ test based on your {vault.length} mastered topics.</p>
+                <button onClick={startTest} className="bg-yellow-500 text-black font-black py-4 px-10 rounded-full shadow-lg hover:scale-105 transition-transform">START TEST</button>
+              </div>
+            )}
+            
+            {testState === 'loading' && <div className="animate-pulse text-yellow-500 font-bold">GENERATING QUESTIONS...</div>}
+            
+            {testState === 'active' && (
+              <div className="w-full max-w-md">
+                <div className="flex justify-between text-xs text-gray-400 mb-4 uppercase font-bold">
+                  <span>Q {currentQIndex + 1} / 10</span>
+                  <span>Score: {score}</span>
+                </div>
+                <div className="bg-[#2d1b4e] p-6 rounded-2xl border border-purple-500/30 mb-6">
+                  <p className="font-medium text-lg">{quiz[currentQIndex].question}</p>
+                </div>
+                <div className="space-y-3">
+                  {quiz[currentQIndex].options.map((opt, i) => (
+                    <button key={i} onClick={() => submitAnswer(opt)} className="w-full p-4 text-left bg-purple-900/40 rounded-xl border border-purple-500/20 hover:bg-yellow-500 hover:text-black transition-colors">{opt}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {testState === 'result' && (
+              <div className="text-center space-y-6">
+                <h2 className="text-3xl font-black text-yellow-500 italic">TEST COMPLETE</h2>
+                <div className="text-6xl font-bold text-white">{score} <span className="text-2xl text-gray-500">/ 10</span></div>
+                <div className="p-4 bg-green-900/30 text-green-400 rounded-lg text-xs uppercase tracking-widest border border-green-500/20">Result Saved to Analytics</div>
+                <button onClick={() => setTestState('idle')} className="underline text-gray-400">Close</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB: ANALYTICS */}
+        {activeTab === 'analytics' && (
+          <div className="space-y-6 animate-in slide-in-from-right">
+            <h2 className="text-xl font-black text-yellow-500 uppercase italic">Performance 📊</h2>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-[#2d1b4e] rounded-2xl border border-purple-500/20 text-center">
+                <div className="text-3xl font-bold text-white">{vault.length}</div>
+                <div className="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Topics Mastered</div>
+              </div>
+              <div className="p-4 bg-[#2d1b4e] rounded-2xl border border-purple-500/20 text-center">
+                <div className={`text-3xl font-bold ${avgScore > 70 ? 'text-green-400' : 'text-orange-400'}`}>{avgScore}%</div>
+                <div className="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Avg Test Score</div>
               </div>
             </div>
-          )}
 
-          {activeTab === 'exam' && (
-            <div className="space-y-8 animate-in zoom-in text-center py-20">
-               <span className="text-6xl mb-4 block">🎯</span>
-               <h2 className="text-2xl font-['Cinzel',serif] font-black text-yellow-400 uppercase tracking-widest">Mock Exam Portal</h2>
-               <p className="text-purple-200 font-medium">Prepare for the challenge. Coming in Phase 3.</p>
-               <button className="mt-8 px-8 py-4 bg-yellow-500 text-purple-900 font-black rounded-full uppercase tracking-widest shadow-xl active:scale-95">Enroll Now</button>
-            </div>
-          )}
-        </div>
-      </main>
-
-      {/* INPUT & NAV FIXED GROUP */}
-      <section className="fixed bottom-0 w-full z-50">
-        {activeTab === 'home' && (
-          <div className="px-6 pb-4">
-            <div className="max-w-xl mx-auto flex gap-2">
-              <input 
-                className="flex-1 px-6 py-4 bg-white/10 backdrop-blur-3xl border border-white/20 rounded-[2rem] text-sm text-white placeholder:text-purple-300/50 outline-none focus:ring-2 focus:ring-yellow-500/50" 
-                placeholder={loading ? "Coach is connecting..." : "Ask your Mentor..."} 
-                value={query} 
-                onChange={(e) => setQuery(e.target.value)} 
-                onKeyDown={(e) => e.key === 'Enter' && handleAsk()} 
-                disabled={loading}
-              />
-              <button 
-                onClick={() => handleAsk()} 
-                disabled={loading || !query.trim()}
-                className={`w-14 h-14 flex items-center justify-center rounded-full shadow-xl transition-all ${
-                  loading || !query.trim() ? 'bg-slate-700 text-slate-500' : 'bg-yellow-500 text-purple-900 hover:scale-105 active:scale-90'
-                }`}
-              >
-                {loading ? '⏳' : '🚀'}
-              </button>
+            <div className="p-6 bg-[#2d1b4e] rounded-2xl border border-purple-500/20">
+               <h3 className="text-sm font-bold text-white mb-4">RECENT TESTS</h3>
+               {examResults.slice(0, 5).map((res, i) => (
+                 <div key={i} className="flex justify-between text-xs py-2 border-b border-white/5 last:border-0">
+                   <span className="text-gray-400">{new Date(res.created_at).toLocaleDateString()}</span>
+                   <span className="font-bold text-yellow-500">{res.score} / {res.total_questions}</span>
+                 </div>
+               ))}
             </div>
           </div>
         )}
 
-        <nav className="pb-8 pt-4 px-8 backdrop-blur-3xl bg-black/60 border-t border-white/10">
-          <div className="max-w-xl mx-auto flex justify-between items-center">
-            {['home', 'vault', 'analytics', 'exam'].map(id => (
-              <button key={id} onClick={() => setActiveTab(id)} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === id ? 'text-yellow-400 scale-110' : 'text-slate-500'}`}>
-                <span className="text-xl">{id === 'home' ? '⚡' : id === 'vault' ? '📜' : id === 'analytics' ? '📈' : '🎯'}</span>
-                <span className="text-[9px] font-['Inter',sans-serif] font-black uppercase tracking-widest">{id}</span>
-              </button>
-            ))}
-          </div>
-        </nav>
-      </section>
+      </main>
 
-      {/* FULL SCREEN READING MODE OVERLAY */}
-      {selectedArticle && (
-        <div className="fixed inset-0 z-[100] bg-slate-900 animate-in slide-in-from-bottom duration-500">
-          <header className="p-6 border-b border-white/10 flex justify-between items-center bg-black/20 backdrop-blur-xl sticky top-0">
-            <button onClick={() => setSelectedArticle(null)} className="text-yellow-500 font-['Inter',sans-serif] font-black tracking-widest text-[10px] uppercase">← Back to Vault</button>
-            <span className="text-[10px] font-['Inter',sans-serif] font-black text-purple-300 uppercase tracking-widest italic">Document View</span>
-          </header>
-          
-          <article className="p-8 overflow-y-auto h-full pb-32">
-            <h2 className="text-3xl font-['Cinzel',serif] font-black text-yellow-500 italic leading-tight mb-8">
-              {selectedArticle.title}
-            </h2>
-            <div className="space-y-6 font-['Cinzel',serif] text-lg text-purple-100 leading-relaxed">
-              <p className="italic border-l-2 border-yellow-500/30 pl-4 py-2 bg-yellow-500/5">
-                "The Constitution is not a mere lawyer's document, it is a vehicle of Life, and its spirit is always the spirit of Age."
-              </p>
-              <p>
-                This space serves as your personalized deep-dive archive for <strong>{selectedArticle.title}</strong>. 
-                In the next phase, we will fetch the real Constitutional clauses and case study notes directly from the AI server.
-              </p>
-              <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
-                <h4 className="text-yellow-500 text-xs font-['Inter',sans-serif] font-black uppercase tracking-widest mb-4 underline decoration-yellow-500/30">Coach's Focus Notes</h4>
-                <p className="text-sm font-['Inter',sans-serif] text-purple-200">
-                  Focus on the "Basic Structure Doctrine" connections here. UPSC often links this concept to the Kesavananda Bharati case.
-                </p>
-              </div>
-            </div>
-          </article>
+      {/* FOOTER NAV */}
+      <nav className="fixed bottom-0 w-full bg-[#130623] border-t border-purple-500/20 p-2 flex justify-around z-40 pb-6">
+        {['home', 'vault', 'test', 'analytics'].map(tab => (
+          <button key={tab} onClick={() => setActiveTab(tab)} className={`p-2 transition-all ${activeTab === tab ? 'text-yellow-400 -translate-y-2' : 'text-gray-500'}`}>
+            <div className="text-xl capitalize">{tab === 'home' ? '⚡' : tab === 'vault' ? '📜' : tab === 'test' ? '🎯' : '📈'}</div>
+            <div className="text-[9px] font-black uppercase tracking-widest mt-1">{tab}</div>
+          </button>
+        ))}
+      </nav>
+      
+      {/* INPUT AREA */}
+      {activeTab === 'home' && (
+        <div className="fixed bottom-24 w-full px-4 max-w-xl mx-auto left-0 right-0 z-50">
+           <div className="flex gap-2">
+             <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Ask your mentor..." className="flex-1 bg-[#2d1b4e] border border-purple-500/30 rounded-full px-6 py-4 text-sm text-white focus:border-yellow-500 outline-none shadow-xl" onKeyDown={e => e.key === 'Enter' && handleAsk()} />
+             <button onClick={handleAsk} disabled={loading} className="bg-yellow-500 text-black w-14 h-14 rounded-full flex items-center justify-center shadow-xl font-bold text-xl">{loading ? '⏳' : '🚀'}</button>
+           </div>
         </div>
       )}
 
+      {/* DOCUMENT OVERLAY */}
+      {selectedArticle && (
+        <div className="fixed inset-0 z-[100] bg-[#1a0b2e] p-6 animate-in slide-in-from-bottom">
+          <button onClick={() => setSelectedArticle(null)} className="mb-8 text-yellow-500 font-bold text-xs uppercase tracking-widest">← Back</button>
+          <h1 className="text-3xl font-serif font-black text-white italic mb-6">{selectedArticle.title}</h1>
+          <div className="p-6 bg-[#2d1b4e] rounded-2xl border border-purple-500/30">
+            <h4 className="text-[10px] text-yellow-500 font-black uppercase mb-4">MENTOR NOTES</h4>
+            <p className="text-gray-300 leading-relaxed font-serif text-lg">{selectedArticle.notes}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -21,6 +21,7 @@
     "vite": "^5.0.0"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.95.0",
     "@tailwindcss/vite": "^4.1.18",
     "canvas-confetti": "^1.9.4",
     "tailwindcss": "^4.1.18"
