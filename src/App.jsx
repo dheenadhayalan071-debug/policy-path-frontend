@@ -6,6 +6,7 @@ const BACKEND_URL = "https://policy-path-ai-backend.onrender.com";
 const STORAGE_KEYS = { MESSAGES: 'pp_messages_v3' };
 
 export default function App() {
+  // --- STATE ---
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.MESSAGES);
     return saved ? JSON.parse(saved) : [{ role: "bot", text: "I am ready. Let's master the Constitution.", type: "mentor" }];
@@ -26,16 +27,27 @@ export default function App() {
 
   const messagesEndRef = useRef(null);
 
-  useEffect(() => { fetchData(); }, []);
+  // --- INITIAL DATA FETCH ---
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   async function fetchData() {
+    // 1. Get Vault
     const { data: vData } = await supabase.from('vault').select('*').order('id', { ascending: false });
     if (vData) setVault(vData);
 
+    // 2. Get Analytics (Fixed this line)
     const { data: eData } = await supabase.from('exam_results').select('score, total_questions');
-    if (eData) setExam 
-      
-    // --- DIAGNOSTIC HANDLEASK (Paste this in App.jsx) ---
+    if (eData) setExamResults(eData);
+  }
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // --- DIAGNOSTIC HANDLEASK (DEBUGGER VERSION) ---
   const handleAsk = async () => {
     if (!query.trim() || loading) return;
     const userQuery = query.trim();
@@ -61,7 +73,7 @@ export default function App() {
         const visibleText = parts[0].trim();
         const hiddenPart = parts[1].split("||VAULT_END||")[0];
         
-        // 1. Improved Parser (Removes ** stars effectively)
+        // 1. Improved Parser
         let topicTitle = "New Mastery";
         if (hiddenPart.includes("Topic:")) {
            topicTitle = hiddenPart.split("Topic:")[1]
@@ -110,16 +122,6 @@ export default function App() {
       setLoading(false);
     }
   };
-    Results(eData);
-  }
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  // --- SAFETY LOGIC: HANDLES TIMEOUTS & PARSING ---
-  
 
   // --- TEST ENGINE ---
   const startTest = async () => {
@@ -159,20 +161,30 @@ export default function App() {
   const avgScore = examResults.length > 0 
     ? Math.round(examResults.reduce((acc, curr) => acc + (curr.score / curr.total_questions) * 100, 0) / examResults.length) : 0;
 
+  // --- RENDER ---
   return (
     <div className="flex flex-col h-[100dvh] bg-[#1a0b2e] text-white font-sans overflow-hidden">
+      
+      {/* HEADER */}
       <header className="p-4 bg-[#2d1b4e] border-b border-purple-500/20 flex justify-between items-center z-50">
         <h1 className="font-black italic text-yellow-400 text-lg">POLICYPATH AI 🏛️</h1>
         <div className="text-[10px] font-bold bg-purple-800 px-2 py-1 rounded text-purple-200">BETA 2.0</div>
       </header>
+
       <main className="flex-1 overflow-y-auto p-4 pb-24">
+        
+        {/* TAB: MENTOR */}
         {activeTab === 'home' && (
           <div className="space-y-4">
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-purple-600 text-white' : 'bg-[#2d1b4e] text-gray-200 border border-purple-500/20'}`}>
                   {m.text}
-                  {m.saved && <div className="mt-3 pt-2 border-t border-white/10 flex items-center gap-2 text-yellow-400 text-[10px] font-black uppercase tracking-widest"><span>💾</span> Saved to Vault</div>}
+                  {m.saved && (
+                    <div className="mt-3 pt-2 border-t border-white/10 flex items-center gap-2 text-yellow-400 text-[10px] font-black uppercase tracking-widest">
+                      <span>💾</span> Saved to Vault
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -180,17 +192,24 @@ export default function App() {
             <div ref={messagesEndRef} />
           </div>
         )}
+
+        {/* TAB: VAULT */}
         {activeTab === 'vault' && (
           <div className="space-y-4 animate-in fade-in">
             <h2 className="text-xl font-black text-yellow-500 uppercase italic">Mastery Vault 📜</h2>
             {vault.length === 0 ? <p className="text-gray-400 text-center mt-10">Vault is empty. Go study!</p> : vault.map(v => (
               <div key={v.id} onClick={() => setSelectedArticle(v)} className="p-4 bg-[#2d1b4e] rounded-xl border border-purple-500/20 active:scale-95 transition-all">
-                <div className="flex justify-between items-center mb-1"><h3 className="font-bold text-white">{v.title}</h3><span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded uppercase">Mastered</span></div>
+                <div className="flex justify-between items-center mb-1">
+                  <h3 className="font-bold text-white">{v.title}</h3>
+                  <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded uppercase">Mastered</span>
+                </div>
                 <p className="text-xs text-gray-400 line-clamp-2">{v.notes}</p>
               </div>
             ))}
           </div>
         )}
+
+        {/* TAB: TEST PORTAL */}
         {activeTab === 'test' && (
           <div className="h-full flex flex-col items-center justify-center animate-in zoom-in">
             {testState === 'idle' && (
@@ -200,14 +219,26 @@ export default function App() {
                 <button onClick={startTest} className="bg-yellow-500 text-black font-black py-4 px-10 rounded-full shadow-lg hover:scale-105 transition-transform">START TEST</button>
               </div>
             )}
+            
             {testState === 'loading' && <div className="animate-pulse text-yellow-500 font-bold">GENERATING QUESTIONS...</div>}
+            
             {testState === 'active' && (
               <div className="w-full max-w-md">
-                <div className="flex justify-between text-xs text-gray-400 mb-4 uppercase font-bold"><span>Q {currentQIndex + 1} / 10</span><span>Score: {score}</span></div>
-                <div className="bg-[#2d1b4e] p-6 rounded-2xl border border-purple-500/30 mb-6"><p className="font-medium text-lg">{quiz[currentQIndex].question}</p></div>
-                <div className="space-y-3">{quiz[currentQIndex].options.map((opt, i) => (<button key={i} onClick={() => submitAnswer(opt)} className="w-full p-4 text-left bg-purple-900/40 rounded-xl border border-purple-500/20 hover:bg-yellow-500 hover:text-black transition-colors">{opt}</button>))}</div>
+                <div className="flex justify-between text-xs text-gray-400 mb-4 uppercase font-bold">
+                  <span>Q {currentQIndex + 1} / 10</span>
+                  <span>Score: {score}</span>
+                </div>
+                <div className="bg-[#2d1b4e] p-6 rounded-2xl border border-purple-500/30 mb-6">
+                  <p className="font-medium text-lg">{quiz[currentQIndex].question}</p>
+                </div>
+                <div className="space-y-3">
+                  {quiz[currentQIndex].options.map((opt, i) => (
+                    <button key={i} onClick={() => submitAnswer(opt)} className="w-full p-4 text-left bg-purple-900/40 rounded-xl border border-purple-500/20 hover:bg-yellow-500 hover:text-black transition-colors">{opt}</button>
+                  ))}
+                </div>
               </div>
             )}
+
             {testState === 'result' && (
               <div className="text-center space-y-6">
                 <h2 className="text-3xl font-black text-yellow-500 italic">TEST COMPLETE</h2>
@@ -217,30 +248,69 @@ export default function App() {
             )}
           </div>
         )}
+
+        {/* TAB: ANALYTICS */}
         {activeTab === 'analytics' && (
           <div className="space-y-6 animate-in slide-in-from-right">
             <h2 className="text-xl font-black text-yellow-500 uppercase italic">Performance 📊</h2>
+            
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-[#2d1b4e] rounded-2xl border border-purple-500/20 text-center"><div className="text-3xl font-bold text-white">{vault.length}</div><div className="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Topics Mastered</div></div>
-              <div className="p-4 bg-[#2d1b4e] rounded-2xl border border-purple-500/20 text-center"><div className={`text-3xl font-bold ${avgScore > 70 ? 'text-green-400' : 'text-orange-400'}`}>{avgScore}%</div><div className="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Avg Test Score</div></div>
+              <div className="p-4 bg-[#2d1b4e] rounded-2xl border border-purple-500/20 text-center">
+                <div className="text-3xl font-bold text-white">{vault.length}</div>
+                <div className="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Topics Mastered</div>
+              </div>
+              <div className="p-4 bg-[#2d1b4e] rounded-2xl border border-purple-500/20 text-center">
+                <div className={`text-3xl font-bold ${avgScore > 70 ? 'text-green-400' : 'text-orange-400'}`}>{avgScore}%</div>
+                <div className="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Avg Test Score</div>
+              </div>
             </div>
-            <div className="p-6 bg-[#2d1b4e] rounded-2xl border border-purple-500/20"><h3 className="text-sm font-bold text-white mb-4">RECENT TESTS</h3>{examResults.slice(0, 5).map((res, i) => (<div key={i} className="flex justify-between text-xs py-2 border-b border-white/5 last:border-0"><span className="text-gray-400">{new Date(res.created_at).toLocaleDateString()}</span><span className="font-bold text-yellow-500">{res.score} / {res.total_questions}</span></div>))}</div>
+
+            <div className="p-6 bg-[#2d1b4e] rounded-2xl border border-purple-500/20">
+               <h3 className="text-sm font-bold text-white mb-4">RECENT TESTS</h3>
+               {examResults.slice(0, 5).map((res, i) => (
+                 <div key={i} className="flex justify-between text-xs py-2 border-b border-white/5 last:border-0">
+                   <span className="text-gray-400">{new Date(res.created_at).toLocaleDateString()}</span>
+                   <span className="font-bold text-yellow-500">{res.score} / {res.total_questions}</span>
+                 </div>
+               ))}
+            </div>
           </div>
         )}
+
       </main>
-      <nav className="fixed bottom-0 w-full bg-[#130623] border-t border-purple-500/20 p-2 flex justify-around z-40 pb-6">{['home', 'vault', 'test', 'analytics'].map(tab => (<button key={tab} onClick={() => setActiveTab(tab)} className={`p-2 transition-all ${activeTab === tab ? 'text-yellow-400 -translate-y-2' : 'text-gray-500'}`}><div className="text-xl capitalize">{tab === 'home' ? '⚡' : tab === 'vault' ? '📜' : tab === 'test' ? '🎯' : '📈'}</div><div className="text-[9px] font-black uppercase tracking-widest mt-1">{tab}</div></button>))}</nav>
+
+      {/* FOOTER NAV */}
+      <nav className="fixed bottom-0 w-full bg-[#130623] border-t border-purple-500/20 p-2 flex justify-around z-40 pb-6">
+        {['home', 'vault', 'test', 'analytics'].map(tab => (
+          <button key={tab} onClick={() => setActiveTab(tab)} className={`p-2 transition-all ${activeTab === tab ? 'text-yellow-400 -translate-y-2' : 'text-gray-500'}`}>
+            <div className="text-xl capitalize">{tab === 'home' ? '⚡' : tab === 'vault' ? '📜' : tab === 'test' ? '🎯' : '📈'}</div>
+            <div className="text-[9px] font-black uppercase tracking-widest mt-1">{tab}</div>
+          </button>
+        ))}
+      </nav>
+      
+      {/* INPUT AREA */}
       {activeTab === 'home' && (
         <div className="fixed bottom-24 w-full px-4 max-w-xl mx-auto left-0 right-0 z-50">
-           <div className="flex gap-2"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Ask your mentor..." className="flex-1 bg-[#2d1b4e] border border-purple-500/30 rounded-full px-6 py-4 text-sm text-white focus:border-yellow-500 outline-none shadow-xl" onKeyDown={e => e.key === 'Enter' && handleAsk()} /><button onClick={handleAsk} disabled={loading} className="bg-yellow-500 text-black w-14 h-14 rounded-full flex items-center justify-center shadow-xl font-bold text-xl">{loading ? '⏳' : '🚀'}</button></div>
+           <div className="flex gap-2">
+             <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Ask your mentor..." className="flex-1 bg-[#2d1b4e] border border-purple-500/30 rounded-full px-6 py-4 text-sm text-white focus:border-yellow-500 outline-none shadow-xl" onKeyDown={e => e.key === 'Enter' && handleAsk()} />
+             <button onClick={handleAsk} disabled={loading} className="bg-yellow-500 text-black w-14 h-14 rounded-full flex items-center justify-center shadow-xl font-bold text-xl">{loading ? '⏳' : '🚀'}</button>
+           </div>
         </div>
       )}
+
+      {/* DOCUMENT OVERLAY */}
       {selectedArticle && (
         <div className="fixed inset-0 z-[100] bg-[#1a0b2e] p-6 animate-in slide-in-from-bottom">
           <button onClick={() => setSelectedArticle(null)} className="mb-8 text-yellow-500 font-bold text-xs uppercase tracking-widest">← Back</button>
           <h1 className="text-3xl font-serif font-black text-white italic mb-6">{selectedArticle.title}</h1>
-          <div className="p-6 bg-[#2d1b4e] rounded-2xl border border-purple-500/30"><h4 className="text-[10px] text-yellow-500 font-black uppercase mb-4">MENTOR NOTES</h4><p className="text-gray-300 leading-relaxed font-serif text-lg">{selectedArticle.notes}</p></div>
+          <div className="p-6 bg-[#2d1b4e] rounded-2xl border border-purple-500/30">
+            <h4 className="text-[10px] text-yellow-500 font-black uppercase mb-4">MENTOR NOTES</h4>
+            <p className="text-gray-300 leading-relaxed font-serif text-lg">{selectedArticle.notes}</p>
+          </div>
         </div>
       )}
     </div>
   );
-                                     }
+  }
+               
