@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { supabase } from './supabaseClient';
 
+// ✅ FIXED: The Correct URL with "-ai-"
 const BACKEND_URL = "https://policy-path-ai-backend.onrender.com"; 
-const STORAGE_KEYS = { MESSAGES: 'pp_messages_v2' };
+const STORAGE_KEYS = { MESSAGES: 'pp_messages_v3' };
 
 export default function App() {
   // --- STATE ---
@@ -47,7 +48,7 @@ export default function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // --- CORE LOGIC: THE VAULT PARSER ---
+  // --- CORE LOGIC: THE BULLETPROOF VAULT PARSER ---
   const handleAsk = async () => {
     if (!query.trim() || loading) return;
     const userQuery = query.trim();
@@ -68,36 +69,49 @@ export default function App() {
       const data = await res.json();
       let aiText = data.answer;
 
-      // 🕵️ SECRET VAULT PARSER
+      // 🛡️ NEW PARSER: Ignores Emojis & Formatting Noise
       if (aiText.includes("||VAULT_START||")) {
         const parts = aiText.split("||VAULT_START||");
         const visibleText = parts[0].trim();
         const hiddenPart = parts[1].split("||VAULT_END||")[0];
         
-        // Extract Title and Summary manually or use Regex
-        const titleMatch = hiddenPart.match(/\*\*Topic:\*\*(.*?)\n/);
-        const summaryMatch = hiddenPart.match(/\*\*Summary:\*\*(.*)/s);
-        
-        const topicTitle = titleMatch ? titleMatch[1].trim() : "New Topic";
-        const topicNotes = summaryMatch ? summaryMatch[1].trim() : hiddenPart;
+        // 1. Extract Title (Finds text after "Topic:" regardless of formatting)
+        let topicTitle = "New Mastery";
+        if (hiddenPart.includes("Topic:")) {
+           // Grabs text after "Topic:" until the next newline or *
+           topicTitle = hiddenPart.split("Topic:")[1].split("*")[0].split("\n")[0].replace(/[*_]/g, '').trim(); 
+        }
 
-        // 1. Save to Supabase
-        await supabase.from('vault').insert([{ 
+        // 2. Extract Summary (Removes the Title line and cleans up)
+        let topicNotes = hiddenPart
+            .replace(/Topic:.*?\n/i, '') // Remove Topic line
+            .replace(/\*\*Topic:.*?\*\*/, '') // Remove bold topic
+            .replace(/Summary:\s*/i, "") // Remove Summary label
+            .replace(/\*\*/g, '') // Remove bold tags
+            .trim();
+
+        // 3. Force Save to Supabase
+        const { error } = await supabase.from('vault').insert([{ 
           title: topicTitle, 
           status: 'Mastered', 
           notes: topicNotes 
         }]);
 
-        // 2. Show Confetti & Badge
-        confetti({ particleCount: 150, spread: 60 });
-        setMessages(prev => [...prev, { role: "bot", text: visibleText, saved: true }]);
-        fetchData(); // Refresh Vault UI
+        if (error) {
+            console.error("Supabase Error:", error);
+        } else {
+            // 4. Success UI
+            confetti({ particleCount: 150, spread: 60 });
+            setMessages(prev => [...prev, { role: "bot", text: visibleText, saved: true }]);
+            fetchData(); // Refresh Vault UI
+        }
 
       } else {
         setMessages(prev => [...prev, { role: "bot", text: aiText }]);
       }
 
     } catch (e) {
+      console.error(e);
       setMessages(prev => [...prev, { role: "bot", text: "Connection failed. Check internet." }]);
     } finally {
       setLoading(false);
@@ -144,7 +158,6 @@ export default function App() {
 
   const finishTest = async () => {
     setTestState("result");
-    const finalScore = score + (quiz[currentQIndex].answer === quiz[currentQIndex].options[0] ? 0 : 0); // Logic handled in submit
     
     // Save Score
     await supabase.from('exam_results').insert([{
@@ -314,4 +327,4 @@ export default function App() {
       )}
     </div>
   );
-}
+    }
