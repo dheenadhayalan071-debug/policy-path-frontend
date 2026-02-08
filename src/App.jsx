@@ -6,7 +6,6 @@ import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 
 const BACKEND_URL = "https://policy-path-ai-backend.onrender.com"; 
-const STORAGE_KEYS = { MESSAGES: 'pp_messages_v3' };
 
 // --- 2. THE GATEKEEPER COMPONENT (Handles Login) ---
 export default function App() {
@@ -63,10 +62,14 @@ export default function App() {
   return <MainApp session={session} />;
 }
 
-// --- 3. THE MAIN APP (Your Dashboard Logic) ---
+// --- 3. THE MAIN APP (Now with User-Specific Privacy) ---
 function MainApp({ session }) {
+  
+  // 🔐 PRIVACY KEY: Creates a unique storage box for THIS user only.
+  const userStorageKey = `pp_chat_history_${session.user.id}`;
+
   const [messages, setMessages] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.MESSAGES);
+    const saved = localStorage.getItem(userStorageKey);
     return saved ? JSON.parse(saved) : [{ role: "bot", text: "I am ready. Let's master the Constitution.", type: "mentor" }];
   });
   
@@ -100,10 +103,11 @@ function MainApp({ session }) {
     if (eData) setExamResults(eData);
   }
 
+  // --- SAVE CHAT HISTORY (User Specific) ---
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
+    localStorage.setItem(userStorageKey, JSON.stringify(messages));
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, userStorageKey]);
 
   // --- DIAGNOSTIC HANDLEASK ---
   const handleAsk = async () => {
@@ -370,4 +374,5 @@ function MainApp({ session }) {
       )}
     </div>
   );
-      }
+          }
+        
