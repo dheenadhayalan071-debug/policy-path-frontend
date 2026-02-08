@@ -41,6 +41,6 @@ author = "agent"
 outputType = "webview"
 
 [[workflows.workflow.tasks]]
-task = "she5000xec"
-args = "npm5000 dev -- --host 0.0.0.0 --port 5000"
+task = "shell.exec"
+args = "npm run dev -- --host 0.0.0.0 --port 5000"
 waitForPort = 5000
