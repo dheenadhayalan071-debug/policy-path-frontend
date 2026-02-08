@@ -402,4 +402,11 @@ function MainApp({ session }) {
             <span className="text-[10px] bg-white/10 px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">Mastered Note</span>
             <h1 className="text-3xl font-serif font-bold text-white mb-6">{selectedArticle.title}</h1>
             <div className="prose prose-invert prose-sm">
-              <p className="text-blue-50 leading-loose font-serif 
+              <p className="text-blue-50 leading-loose font-serif text-lg whitespace-pre-wrap">{selectedArticle.notes}</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
