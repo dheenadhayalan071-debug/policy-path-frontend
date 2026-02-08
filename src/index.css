@@ -1,4 +1,7 @@
 @import "tailwindcss";
+
+/* --- 1. THE "OCEAN & CLOUD" ANIMATION --- */
+/* Replacing Purple/Black with your Premium Blue Palette */
 @keyframes gradientWave {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
@@ -6,27 +9,58 @@
 }
 
 .animate-wave {
-  background: linear-gradient(-45deg, #2D0B5A, #4B0082, #1A0633, #0F041C);
+  /* The "Power Move" Gradient: Ocean Blue -> Deep Navy -> Cloudy Sky */
+  background: linear-gradient(-45deg, #2872A1, #154360, #1A5276, #CBDDE9);
   background-size: 400% 400%;
   animation: gradientWave 15s ease infinite;
 }
-@keyframes gradientWave {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+
+/* --- 2. GLASSMORPHISM UTILITIES (The "Frosty" Look) --- */
+/* Apply this class to cards to make them look like frosted glass */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
 }
 
-.animate-wave {
-  background: linear-gradient(-45deg, #1A0633, #4B0082, #2D0B5A, #0F041C);
-  background-size: 400% 400%;
-  animation: gradientWave 12s ease infinite;
+/* --- 3. CAROUSEL UTILITIES (For the Vault Swipe) --- */
+/* Hides the scrollbar but allows swiping */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
+/* --- 4. THEME CONFIGURATION --- */
 @theme {
+  /* Using "Cinzel" for that Constitution feel (Answer 4B) */
   --font-serif: "Cinzel", serif;
   --font-sans: "Inter", sans-serif;
+  
+  /* Your Custom Colors */
+  --color-ocean: #2872A1;
+  --color-cloud: #CBDDE9;
 }
 
+/* --- 5. GLOBAL STYLES --- */
 body {
-  font-family: var(--font-sans); /* Default body font */
+  font-family: var(--font-sans);
+  color: white;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevents scroll bounce on mobile */
+}
+
+/* Smooth Fade In Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
 }
