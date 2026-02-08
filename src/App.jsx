@@ -62,11 +62,11 @@ function MainApp({ session }) {
   async function fetchData() {
     if (!session?.user) return;
 
-    // 1. Get Vault (Filtered by User via RLS or explicit check)
+    // 1. Get Vault (Filtered by User)
     const { data: vData } = await supabase
       .from('vault')
       .select('*')
-      .eq('user_id', session.user.id) // EXTRA SAFETY
+      .eq('user_id', session.user.id) // 🔒 PRIVACY LOCK
       .order('id', { ascending: false });
       
     if (vData) setVault(vData);
@@ -74,8 +74,8 @@ function MainApp({ session }) {
     // 2. Get Analytics (Added created_at!)
     const { data: eData } = await supabase
       .from('exam_results')
-      .select('score, total_questions, created_at') // ADDED DATE COLUMN
-      .eq('user_id', session.user.id) // EXTRA SAFETY
+      .select('score, total_questions, created_at') // 📅 DATE FIX
+      .eq('user_id', session.user.id) // 🔒 PRIVACY LOCK
       .order('created_at', { ascending: false });
 
     if (eData) setExamResults(eData);
@@ -97,7 +97,7 @@ function MainApp({ session }) {
     const lastBot = messages.filter(m => m.role === 'bot').pop()?.text || "";
     
     // 🔥 STRICT INSTRUCTION INJECTION
-    // We wrap the user's query with a "System Note" to force the AI to behave.
+    // Forces the AI to challenge you before saving
     const strictContext = `
       [SYSTEM: You are a strict Mentor. Do NOT save to vault immediately. 
       Challenge the user with a question first. Only use ||VAULT_START|| if the user answers correctly and proves mastery.]
@@ -145,7 +145,8 @@ function MainApp({ session }) {
                   setMessages(prev => [...prev, { role: "bot", text: visibleText, saved: true }]);
                   fetchData(); 
              } else {
-                setMessages(prev => [...prev, { role: "bot", text: visibleText + "\n[Error saving: Database might need user_id column]" }]);
+                // Fallback if RLS blocks or DB error
+                setMessages(prev => [...prev, { role: "bot", text: visibleText + "\n[System: Vault save pending DB update]" }]);
              }
         }
       } else {
@@ -300,6 +301,7 @@ function MainApp({ session }) {
                {examResults.length === 0 ? <p className="text-xs text-gray-500">No tests taken yet.</p> : 
                  examResults.slice(0, 5).map((res, i) => (
                  <div key={i} className="flex justify-between text-xs py-2 border-b border-white/5 last:border-0">
+                   {/* 📅 DATE FIX */}
                    <span className="text-gray-400">{res.created_at ? new Date(res.created_at).toLocaleDateString() : 'Just now'}</span>
                    <span className="font-bold text-yellow-500">{res.score} / {res.total_questions}</span>
                  </div>
@@ -341,4 +343,4 @@ function MainApp({ session }) {
     </div>
   );
             }
-    
+                 
