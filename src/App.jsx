@@ -46,7 +46,6 @@ function MainApp({ session }) {
   const [activeTab, setActiveTab] = useState('home');
   const [selectedArticle, setSelectedArticle] = useState(null);
   
-  // Test Portal State
   const [testState, setTestState] = useState("idle"); 
   const [quiz, setQuiz] = useState([]);
   const [currentQIndex, setCurrentQIndex] = useState(0);
@@ -54,10 +53,10 @@ function MainApp({ session }) {
 
   const messagesEndRef = useRef(null);
 
-  // --- FETCH DATA (Now Private & With Dates) ---
+  // --- FETCH DATA (Private & With Dates) ---
   useEffect(() => {
     fetchData();
-  }, [session]); // Refresh when session changes
+  }, [session]);
 
   async function fetchData() {
     if (!session?.user) return;
@@ -66,16 +65,16 @@ function MainApp({ session }) {
     const { data: vData } = await supabase
       .from('vault')
       .select('*')
-      .eq('user_id', session.user.id) // 🔒 PRIVACY LOCK
+      .eq('user_id', session.user.id)
       .order('id', { ascending: false });
       
     if (vData) setVault(vData);
 
-    // 2. Get Analytics (Added created_at!)
+    // 2. Get Analytics (With Date)
     const { data: eData } = await supabase
       .from('exam_results')
-      .select('score, total_questions, created_at') // 📅 DATE FIX
-      .eq('user_id', session.user.id) // 🔒 PRIVACY LOCK
+      .select('score, total_questions, created_at')
+      .eq('user_id', session.user.id)
       .order('created_at', { ascending: false });
 
     if (eData) setExamResults(eData);
@@ -86,7 +85,7 @@ function MainApp({ session }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, userStorageKey]);
 
-  // --- SMART AI HANDLER ---
+  // --- SMART AI HANDLER (LOOP BREAKER EDITION) ---
   const handleAsk = async () => {
     if (!query.trim() || loading) return;
     const userQuery = query.trim();
@@ -94,16 +93,22 @@ function MainApp({ session }) {
     setQuery("");
     setMessages(prev => [...prev, { role: "user", text: userQuery }]);
 
-    const lastBot = messages.filter(m => m.role === 'bot').pop()?.text || "";
+    // 1. CAPTURE THE EXACT LAST QUESTION (The "Context")
+    const lastBotMessage = messages.filter(m => m.role === 'bot').pop()?.text || "";
     
-    // 🔥 STRICT INSTRUCTION INJECTION
-    // Forces the AI to challenge you before saving
+    // 2. CONSTRUCT THE "STATE" FOR THE AI
+    // We explicitly tell the AI: "Here is what you just asked, and here is what the user answered."
     const strictContext = `
-      [SYSTEM: You are a strict Mentor. Do NOT save to vault immediately. 
-      Challenge the user with a question first. Only use ||VAULT_START|| if the user answers correctly and proves mastery.]
-      
-      [History: "${lastBot.slice(0, 50)}..."] 
-      User: "${userQuery}"
+    CURRENT_STATE:
+    [PREVIOUS_AI_MESSAGE]: "${lastBotMessage.slice(0, 500)}"
+    [USER_LATEST_INPUT]: "${userQuery}"
+    
+    INSTRUCTIONS:
+    1. READ [PREVIOUS_AI_MESSAGE]. Did you ask a question there?
+    2. IF YES -> [USER_LATEST_INPUT] is the answer. GRADE IT.
+       - If Correct: Say "Correct!", explain briefly, and output ||VAULT_START|| tag.
+       - If Wrong: Say "Not quite," and explain why.
+    3. IF NO (or history is empty) -> This is a new topic. Explain and ask a question.
     `;
 
     try {
@@ -132,12 +137,12 @@ function MainApp({ session }) {
         if (isDuplicate) {
              setMessages(prev => [...prev, { role: "bot", text: `${visibleText}\n\n(Note: You already mastered "${topicTitle}", so I didn't save it twice!)` }]);
         } else {
-             // ✅ SAVE WITH USER_ID
+             // ✅ SAVE TO DB
              const { error } = await supabase.from('vault').insert([{ 
                title: topicTitle, 
                status: 'Mastered', 
                notes: topicNotes,
-               user_id: session.user.id // ATTACH USER ID
+               user_id: session.user.id
              }]);
 
              if (!error) {
@@ -145,7 +150,6 @@ function MainApp({ session }) {
                   setMessages(prev => [...prev, { role: "bot", text: visibleText, saved: true }]);
                   fetchData(); 
              } else {
-                // Fallback if RLS blocks or DB error
                 setMessages(prev => [...prev, { role: "bot", text: visibleText + "\n[System: Vault save pending DB update]" }]);
              }
         }
@@ -188,7 +192,6 @@ function MainApp({ session }) {
 
   const finishTest = async () => {
     setTestState("result");
-    // ✅ SAVE WITH USER_ID
     await supabase.from('exam_results').insert([{
       score: score, 
       total_questions: quiz.length, 
@@ -301,7 +304,6 @@ function MainApp({ session }) {
                {examResults.length === 0 ? <p className="text-xs text-gray-500">No tests taken yet.</p> : 
                  examResults.slice(0, 5).map((res, i) => (
                  <div key={i} className="flex justify-between text-xs py-2 border-b border-white/5 last:border-0">
-                   {/* 📅 DATE FIX */}
                    <span className="text-gray-400">{res.created_at ? new Date(res.created_at).toLocaleDateString() : 'Just now'}</span>
                    <span className="font-bold text-yellow-500">{res.score} / {res.total_questions}</span>
                  </div>
@@ -342,5 +344,5 @@ function MainApp({ session }) {
       )}
     </div>
   );
-            }
-                 
+        }
+                
