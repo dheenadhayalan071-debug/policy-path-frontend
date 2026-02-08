@@ -1,12 +1,70 @@
 import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { supabase } from './supabaseClient';
+// 1. IMPORT THE LOGIN WIDGET
+import { Auth } from '@supabase/auth-ui-react';
+import { ThemeSupa } from '@supabase/auth-ui-shared';
 
 const BACKEND_URL = "https://policy-path-ai-backend.onrender.com"; 
 const STORAGE_KEYS = { MESSAGES: 'pp_messages_v3' };
 
+// --- 2. THE GATEKEEPER COMPONENT (Handles Login) ---
 export default function App() {
-  // --- STATE ---
+  const [session, setSession] = useState(null);
+
+  useEffect(() => {
+    // Check for active session on load
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    // Listen for changes (Login/Logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // IF NOT LOGGED IN -> SHOW LOGIN SCREEN
+  if (!session) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-[#1a0b2e] text-white p-4">
+        <div className="w-full max-w-md p-8 bg-[#2d1b4e] rounded-xl border border-purple-500/30 shadow-2xl">
+          <h1 className="text-3xl font-black italic text-yellow-400 mb-2 text-center">POLICYPATH AI 🏛️</h1>
+          <p className="text-gray-400 text-center mb-8 text-sm">Sign in to access your private Mastery Vault.</p>
+          
+          {/* THE FANCY WIDGET */}
+          <Auth 
+            supabaseClient={supabase} 
+            appearance={{ 
+              theme: ThemeSupa, 
+              variables: { 
+                default: { 
+                  colors: { 
+                    brand: '#eab308', 
+                    brandAccent: '#ca8a04',
+                    inputText: 'white',
+                    inputBackground: '#1a0b2e',
+                    inputBorder: '#5b21b6',
+                  } 
+                } 
+              } 
+            }}
+            theme="dark"
+            providers={['google']} 
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // IF LOGGED IN -> SHOW MAIN APP
+  return <MainApp session={session} />;
+}
+
+// --- 3. THE MAIN APP (Your Dashboard Logic) ---
+function MainApp({ session }) {
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.MESSAGES);
     return saved ? JSON.parse(saved) : [{ role: "bot", text: "I am ready. Let's master the Constitution.", type: "mentor" }];
@@ -37,7 +95,7 @@ export default function App() {
     const { data: vData } = await supabase.from('vault').select('*').order('id', { ascending: false });
     if (vData) setVault(vData);
 
-    // 2. Get Analytics (Fixed this line)
+    // 2. Get Analytics
     const { data: eData } = await supabase.from('exam_results').select('score, total_questions');
     if (eData) setExamResults(eData);
   }
@@ -47,7 +105,7 @@ export default function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // --- DIAGNOSTIC HANDLEASK (DEBUGGER VERSION) ---
+  // --- DIAGNOSTIC HANDLEASK ---
   const handleAsk = async () => {
     if (!query.trim() || loading) return;
     const userQuery = query.trim();
@@ -67,18 +125,17 @@ export default function App() {
       const data = await res.json();
       let aiText = data.answer;
 
-      // 🕵️ DEBUGGER LOGIC
       if (aiText.includes("||VAULT_START||")) {
         const parts = aiText.split("||VAULT_START||");
         const visibleText = parts[0].trim();
         const hiddenPart = parts[1].split("||VAULT_END||")[0];
         
-        // 1. Improved Parser
+        // Parser
         let topicTitle = "New Mastery";
         if (hiddenPart.includes("Topic:")) {
            topicTitle = hiddenPart.split("Topic:")[1]
-             .replace(/\*/g, '') // Remove all stars first
-             .split("\n")[0]     // Take the first line
+             .replace(/\*/g, '')
+             .split("\n")[0]
              .trim(); 
         }
 
@@ -88,25 +145,16 @@ export default function App() {
             .replace(/\*/g, '') 
             .trim();
 
-        console.log("Attempting to save:", { topicTitle, topicNotes });
-
-        // 2. The Save Attempt
-        const { data: dbData, error } = await supabase.from('vault').insert([{ 
+        // Save Attempt
+        const { error } = await supabase.from('vault').insert([{ 
           title: topicTitle, 
           status: 'Mastered', 
           notes: topicNotes 
-        }]).select();
+        }]);
 
-        // 3. DIAGNOSTIC ALERT SYSTEM
         if (error) {
-            // 🚨 PRINT THE ERROR IN THE CHAT
-            console.error("Supabase Error:", error);
-            setMessages(prev => [...prev, { 
-              role: "bot", 
-              text: `❌ DATABASE ERROR:\nCode: ${error.code}\nMessage: ${error.message}\nDetails: ${error.details || 'None'}` 
-            }]);
+            setMessages(prev => [...prev, { role: "bot", text: `❌ Database Error: ${error.message}` }]);
         } else {
-            // ✅ SUCCESS
             confetti({ particleCount: 150, spread: 60 });
             setMessages(prev => [...prev, { role: "bot", text: visibleText, saved: true }]);
             fetchData(); 
@@ -168,7 +216,17 @@ export default function App() {
       {/* HEADER */}
       <header className="p-4 bg-[#2d1b4e] border-b border-purple-500/20 flex justify-between items-center z-50">
         <h1 className="font-black italic text-yellow-400 text-lg">POLICYPATH AI 🏛️</h1>
-        <div className="text-[10px] font-bold bg-purple-800 px-2 py-1 rounded text-purple-200">BETA 2.0</div>
+        <div className="flex items-center gap-2">
+           <div className="text-[10px] font-bold bg-purple-800 px-2 py-1 rounded text-purple-200">BETA 2.0</div>
+           
+           {/* LOGOUT BUTTON */}
+           <button 
+             onClick={() => supabase.auth.signOut()} 
+             className="text-[10px] font-bold bg-red-500/10 text-red-400 px-2 py-1 rounded border border-red-500/20 hover:bg-red-500 hover:text-white transition"
+           >
+             LOGOUT
+           </button>
+        </div>
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 pb-24">
@@ -312,5 +370,4 @@ export default function App() {
       )}
     </div>
   );
-  }
-               
+      }
