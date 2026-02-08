@@ -1,76 +1,42 @@
 import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { supabase } from './supabaseClient';
-// 1. IMPORT THE LOGIN WIDGET
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 
 const BACKEND_URL = "https://policy-path-ai-backend.onrender.com"; 
 
-// --- 2. THE GATEKEEPER COMPONENT (Handles Login) ---
+// --- 1. GATEKEEPER ---
 export default function App() {
   const [session, setSession] = useState(null);
 
   useEffect(() => {
-    // Check for active session on load
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    // Listen for changes (Login/Logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
+    supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
     return () => subscription.unsubscribe();
   }, []);
 
-  // IF NOT LOGGED IN -> SHOW LOGIN SCREEN
   if (!session) {
     return (
       <div className="flex items-center justify-center h-screen bg-[#1a0b2e] text-white p-4">
         <div className="w-full max-w-md p-8 bg-[#2d1b4e] rounded-xl border border-purple-500/30 shadow-2xl">
           <h1 className="text-3xl font-black italic text-yellow-400 mb-2 text-center">POLICYPATH AI 🏛️</h1>
           <p className="text-gray-400 text-center mb-8 text-sm">Sign in to access your private Mastery Vault.</p>
-          
-          {/* THE FANCY WIDGET */}
-          <Auth 
-            supabaseClient={supabase} 
-            appearance={{ 
-              theme: ThemeSupa, 
-              variables: { 
-                default: { 
-                  colors: { 
-                    brand: '#eab308', 
-                    brandAccent: '#ca8a04',
-                    inputText: 'white',
-                    inputBackground: '#1a0b2e',
-                    inputBorder: '#5b21b6',
-                  } 
-                } 
-              } 
-            }}
-            theme="dark"
-            providers={['google']} 
-          />
+          <Auth supabaseClient={supabase} appearance={{ theme: ThemeSupa, variables: { default: { colors: { brand: '#eab308', brandAccent: '#ca8a04', inputText: 'white', inputBackground: '#1a0b2e', inputBorder: '#5b21b6' } } } }} theme="dark" providers={['google']} />
         </div>
       </div>
     );
   }
-
-  // IF LOGGED IN -> SHOW MAIN APP
   return <MainApp session={session} />;
 }
 
-// --- 3. THE MAIN APP (Now with User-Specific Privacy) ---
+// --- 2. MAIN APP ---
 function MainApp({ session }) {
-  
-  // 🔐 PRIVACY KEY: Creates a unique storage box for THIS user only.
   const userStorageKey = `pp_chat_history_${session.user.id}`;
 
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem(userStorageKey);
-    return saved ? JSON.parse(saved) : [{ role: "bot", text: "I am ready. Let's master the Constitution.", type: "mentor" }];
+    return saved ? JSON.parse(saved) : [{ role: "bot", text: "I am ready. Let's master the Constitution. I will quiz you before saving anything to your vault!", type: "mentor" }];
   });
   
   const [vault, setVault] = useState([]);
@@ -88,28 +54,39 @@ function MainApp({ session }) {
 
   const messagesEndRef = useRef(null);
 
-  // --- INITIAL DATA FETCH ---
+  // --- FETCH DATA (Now Private & With Dates) ---
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [session]); // Refresh when session changes
 
   async function fetchData() {
-    // 1. Get Vault
-    const { data: vData } = await supabase.from('vault').select('*').order('id', { ascending: false });
+    if (!session?.user) return;
+
+    // 1. Get Vault (Filtered by User via RLS or explicit check)
+    const { data: vData } = await supabase
+      .from('vault')
+      .select('*')
+      .eq('user_id', session.user.id) // EXTRA SAFETY
+      .order('id', { ascending: false });
+      
     if (vData) setVault(vData);
 
-    // 2. Get Analytics
-    const { data: eData } = await supabase.from('exam_results').select('score, total_questions');
+    // 2. Get Analytics (Added created_at!)
+    const { data: eData } = await supabase
+      .from('exam_results')
+      .select('score, total_questions, created_at') // ADDED DATE COLUMN
+      .eq('user_id', session.user.id) // EXTRA SAFETY
+      .order('created_at', { ascending: false });
+
     if (eData) setExamResults(eData);
   }
 
-  // --- SAVE CHAT HISTORY (User Specific) ---
   useEffect(() => {
     localStorage.setItem(userStorageKey, JSON.stringify(messages));
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, userStorageKey]);
 
-  // --- DIAGNOSTIC HANDLEASK ---
+  // --- SMART AI HANDLER ---
   const handleAsk = async () => {
     if (!query.trim() || loading) return;
     const userQuery = query.trim();
@@ -118,13 +95,22 @@ function MainApp({ session }) {
     setMessages(prev => [...prev, { role: "user", text: userQuery }]);
 
     const lastBot = messages.filter(m => m.role === 'bot').pop()?.text || "";
-    const context = `[History: User studied "${lastBot.slice(0, 50)}..."] User: "${userQuery}"`;
+    
+    // 🔥 STRICT INSTRUCTION INJECTION
+    // We wrap the user's query with a "System Note" to force the AI to behave.
+    const strictContext = `
+      [SYSTEM: You are a strict Mentor. Do NOT save to vault immediately. 
+      Challenge the user with a question first. Only use ||VAULT_START|| if the user answers correctly and proves mastery.]
+      
+      [History: "${lastBot.slice(0, 50)}..."] 
+      User: "${userQuery}"
+    `;
 
     try {
       const res = await fetch(`${BACKEND_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_query: context, mode: "chat" })
+        body: JSON.stringify({ user_query: strictContext, mode: "chat" })
       });
       const data = await res.json();
       let aiText = data.answer;
@@ -134,40 +120,37 @@ function MainApp({ session }) {
         const visibleText = parts[0].trim();
         const hiddenPart = parts[1].split("||VAULT_END||")[0];
         
-        // Parser
         let topicTitle = "New Mastery";
         if (hiddenPart.includes("Topic:")) {
-           topicTitle = hiddenPart.split("Topic:")[1]
-             .replace(/\*/g, '')
-             .split("\n")[0]
-             .trim(); 
+           topicTitle = hiddenPart.split("Topic:")[1].replace(/\*/g, '').split("\n")[0].trim(); 
         }
+        let topicNotes = hiddenPart.replace(/Topic:.*?\n/i, '').replace(/Summary:\s*/i, "").replace(/\*/g, '').trim();
 
-        let topicNotes = hiddenPart
-            .replace(/Topic:.*?\n/i, '')
-            .replace(/Summary:\s*/i, "")
-            .replace(/\*/g, '') 
-            .trim();
+        // 🛑 DUPLICATE CHECK
+        const isDuplicate = vault.some(v => v.title.toLowerCase() === topicTitle.toLowerCase());
 
-        // Save Attempt
-        const { error } = await supabase.from('vault').insert([{ 
-          title: topicTitle, 
-          status: 'Mastered', 
-          notes: topicNotes 
-        }]);
-
-        if (error) {
-            setMessages(prev => [...prev, { role: "bot", text: `❌ Database Error: ${error.message}` }]);
+        if (isDuplicate) {
+             setMessages(prev => [...prev, { role: "bot", text: `${visibleText}\n\n(Note: You already mastered "${topicTitle}", so I didn't save it twice!)` }]);
         } else {
-            confetti({ particleCount: 150, spread: 60 });
-            setMessages(prev => [...prev, { role: "bot", text: visibleText, saved: true }]);
-            fetchData(); 
-        }
+             // ✅ SAVE WITH USER_ID
+             const { error } = await supabase.from('vault').insert([{ 
+               title: topicTitle, 
+               status: 'Mastered', 
+               notes: topicNotes,
+               user_id: session.user.id // ATTACH USER ID
+             }]);
 
+             if (!error) {
+                  confetti({ particleCount: 150, spread: 60 });
+                  setMessages(prev => [...prev, { role: "bot", text: visibleText, saved: true }]);
+                  fetchData(); 
+             } else {
+                setMessages(prev => [...prev, { role: "bot", text: visibleText + "\n[Error saving: Database might need user_id column]" }]);
+             }
+        }
       } else {
         setMessages(prev => [...prev, { role: "bot", text: aiText }]);
       }
-
     } catch (e) {
       setMessages(prev => [...prev, { role: "bot", text: `⚠️ NETWORK ERROR: ${e.message}` }]);
     } finally {
@@ -175,7 +158,7 @@ function MainApp({ session }) {
     }
   };
 
-  // --- TEST ENGINE ---
+  // --- TEST ENGINE (Updated with User ID) ---
   const startTest = async () => {
     if (vault.length === 0) return alert("Vault is empty. Study first!");
     setTestState("loading");
@@ -204,8 +187,12 @@ function MainApp({ session }) {
 
   const finishTest = async () => {
     setTestState("result");
+    // ✅ SAVE WITH USER_ID
     await supabase.from('exam_results').insert([{
-      score: score, total_questions: quiz.length, topics_covered: "Mixed Vault Test"
+      score: score, 
+      total_questions: quiz.length, 
+      topics_covered: "Mixed Vault Test",
+      user_id: session.user.id
     }]);
     fetchData();
   };
@@ -213,40 +200,24 @@ function MainApp({ session }) {
   const avgScore = examResults.length > 0 
     ? Math.round(examResults.reduce((acc, curr) => acc + (curr.score / curr.total_questions) * 100, 0) / examResults.length) : 0;
 
-  // --- RENDER ---
   return (
     <div className="flex flex-col h-[100dvh] bg-[#1a0b2e] text-white font-sans overflow-hidden">
-      
-      {/* HEADER */}
       <header className="p-4 bg-[#2d1b4e] border-b border-purple-500/20 flex justify-between items-center z-50">
         <h1 className="font-black italic text-yellow-400 text-lg">POLICYPATH AI 🏛️</h1>
         <div className="flex items-center gap-2">
            <div className="text-[10px] font-bold bg-purple-800 px-2 py-1 rounded text-purple-200">BETA 2.0</div>
-           
-           {/* LOGOUT BUTTON */}
-           <button 
-             onClick={() => supabase.auth.signOut()} 
-             className="text-[10px] font-bold bg-red-500/10 text-red-400 px-2 py-1 rounded border border-red-500/20 hover:bg-red-500 hover:text-white transition"
-           >
-             LOGOUT
-           </button>
+           <button onClick={() => supabase.auth.signOut()} className="text-[10px] font-bold bg-red-500/10 text-red-400 px-2 py-1 rounded border border-red-500/20 hover:bg-red-500 hover:text-white transition">LOGOUT</button>
         </div>
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 pb-24">
-        
-        {/* TAB: MENTOR */}
         {activeTab === 'home' && (
           <div className="space-y-4">
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-purple-600 text-white' : 'bg-[#2d1b4e] text-gray-200 border border-purple-500/20'}`}>
                   {m.text}
-                  {m.saved && (
-                    <div className="mt-3 pt-2 border-t border-white/10 flex items-center gap-2 text-yellow-400 text-[10px] font-black uppercase tracking-widest">
-                      <span>💾</span> Saved to Vault
-                    </div>
-                  )}
+                  {m.saved && <div className="mt-3 pt-2 border-t border-white/10 flex items-center gap-2 text-yellow-400 text-[10px] font-black uppercase tracking-widest"><span>💾</span> Saved to Vault</div>}
                 </div>
               </div>
             ))}
@@ -255,7 +226,6 @@ function MainApp({ session }) {
           </div>
         )}
 
-        {/* TAB: VAULT */}
         {activeTab === 'vault' && (
           <div className="space-y-4 animate-in fade-in">
             <h2 className="text-xl font-black text-yellow-500 uppercase italic">Mastery Vault 📜</h2>
@@ -271,7 +241,6 @@ function MainApp({ session }) {
           </div>
         )}
 
-        {/* TAB: TEST PORTAL */}
         {activeTab === 'test' && (
           <div className="h-full flex flex-col items-center justify-center animate-in zoom-in">
             {testState === 'idle' && (
@@ -311,7 +280,6 @@ function MainApp({ session }) {
           </div>
         )}
 
-        {/* TAB: ANALYTICS */}
         {activeTab === 'analytics' && (
           <div className="space-y-6 animate-in slide-in-from-right">
             <h2 className="text-xl font-black text-yellow-500 uppercase italic">Performance 📊</h2>
@@ -329,9 +297,10 @@ function MainApp({ session }) {
 
             <div className="p-6 bg-[#2d1b4e] rounded-2xl border border-purple-500/20">
                <h3 className="text-sm font-bold text-white mb-4">RECENT TESTS</h3>
-               {examResults.slice(0, 5).map((res, i) => (
+               {examResults.length === 0 ? <p className="text-xs text-gray-500">No tests taken yet.</p> : 
+                 examResults.slice(0, 5).map((res, i) => (
                  <div key={i} className="flex justify-between text-xs py-2 border-b border-white/5 last:border-0">
-                   <span className="text-gray-400">{new Date(res.created_at).toLocaleDateString()}</span>
+                   <span className="text-gray-400">{res.created_at ? new Date(res.created_at).toLocaleDateString() : 'Just now'}</span>
                    <span className="font-bold text-yellow-500">{res.score} / {res.total_questions}</span>
                  </div>
                ))}
@@ -341,7 +310,6 @@ function MainApp({ session }) {
 
       </main>
 
-      {/* FOOTER NAV */}
       <nav className="fixed bottom-0 w-full bg-[#130623] border-t border-purple-500/20 p-2 flex justify-around z-40 pb-6">
         {['home', 'vault', 'test', 'analytics'].map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)} className={`p-2 transition-all ${activeTab === tab ? 'text-yellow-400 -translate-y-2' : 'text-gray-500'}`}>
@@ -351,7 +319,6 @@ function MainApp({ session }) {
         ))}
       </nav>
       
-      {/* INPUT AREA */}
       {activeTab === 'home' && (
         <div className="fixed bottom-24 w-full px-4 max-w-xl mx-auto left-0 right-0 z-50">
            <div className="flex gap-2">
@@ -361,7 +328,6 @@ function MainApp({ session }) {
         </div>
       )}
 
-      {/* DOCUMENT OVERLAY */}
       {selectedArticle && (
         <div className="fixed inset-0 z-[100] bg-[#1a0b2e] p-6 animate-in slide-in-from-bottom">
           <button onClick={() => setSelectedArticle(null)} className="mb-8 text-yellow-500 font-bold text-xs uppercase tracking-widest">← Back</button>
@@ -374,5 +340,5 @@ function MainApp({ session }) {
       )}
     </div>
   );
-          }
-        
+            }
+    
