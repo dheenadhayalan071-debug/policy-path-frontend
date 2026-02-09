@@ -390,14 +390,14 @@ function MainApp({ session }) {
         </div>
       )}
 
-      {/* 4. BOTTOM NAVIGATION DOCK (4 Tabs Restored) */}
+      {/* 4. BOTTOM NAVIGATION DOCK (4 Tabs Restored & FIXED) */}
       <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
          <nav className="bg-black/40 backdrop-blur-2xl border border-white/10 rounded-full px-6 py-3 flex gap-6 shadow-2xl">
             {[
               { id: 'home', icon: <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/> },
               { id: 'vault', icon: <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/> },
-              { id: 'test', icon: <circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/> },
-              { id: 'analytics', icon: <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/> }
+              { id: 'test', icon: <><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></> },
+              { id: 'analytics', icon: <><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></> }
             ].map(tab => (
               <button 
                 key={tab.id} 
@@ -417,7 +417,8 @@ function MainApp({ session }) {
       {/* 5. READING MODAL */}
       {selectedArticle && (
         <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-[#1a2c38] w-full max-w-lg max-h-[80vh] rounded-3xl p-8 overflow-y-auto border border-white/10 hover:bg-white/20 w-8 h-8 rounded-full flex items-center justify-center text-white/70 transition">✕</button>
+          <div className="bg-[#1a2c38] w-full max-w-lg max-h-[80vh] rounded-3xl p-8 overflow-y-auto border border-white/10 relative shadow-2xl">
+            <button onClick={() => setSelectedArticle(null)} className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 w-8 h-8 rounded-full flex items-center justify-center text-white/70 transition">✕</button>
             <h1 className="text-2xl font-serif font-bold text-white mb-4">{selectedArticle.title}</h1>
             <div className="text-blue-100/80 leading-7 font-light whitespace-pre-wrap">
               {selectedArticle.notes}
