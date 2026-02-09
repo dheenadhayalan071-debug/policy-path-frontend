@@ -28,7 +28,9 @@ export default function App() {
           </div>
           
           <Auth 
-            supabaseClient={supabase} 
+            supabaseClient={supabase}
+            // 👇 THIS IS THE FIX! REPLACE WITH YOUR ACTUAL VERCEL URL
+            redirectTo="https://policy-path-theta.vercel.app/" 
             appearance={{ 
               theme: ThemeSupa, 
               variables: { 
@@ -72,12 +74,6 @@ function MainApp({ session }) {
   const [activeTab, setActiveTab] = useState('home');
   const [selectedArticle, setSelectedArticle] = useState(null);
   
-  // Quiz States
-  const [testState, setTestState] = useState("idle"); 
-  const [quiz, setQuiz] = useState([]);
-  const [currentQIndex, setCurrentQIndex] = useState(0);
-  const [score, setScore] = useState(0);
-
   const messagesEndRef = useRef(null);
 
   // Fetch Vault Data on Load
@@ -319,4 +315,5 @@ function MainApp({ session }) {
 
     </div>
   );
-}
+      }
+                
