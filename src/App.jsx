@@ -79,9 +79,68 @@ function MainApp({ session }) {
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [score, setScore] = useState(0);
 
+  // --- NEW LEADERBOARD STATE ---
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [userProfile, setUserProfile] = useState(null);
+
   const messagesEndRef = useRef(null);
 
-  useEffect(() => { fetchData(); }, [session]);
+  // --- XP & LEADERBOARD LOGIC ---
+  const updateXP = async (amount, type) => {
+    if (!session?.user) return;
+
+    // 1. Get current profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!profile) return;
+
+    // 2. Calculate Streak
+    const lastActive = new Date(profile.last_active);
+    const today = new Date();
+    const diffTime = Math.abs(today - lastActive);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+
+    let newStreak = profile.streak;
+    if (diffDays === 1) newStreak += 1; // Consecutive day
+    else if (diffDays > 1) newStreak = 1; // Missed a day, reset
+
+    // 3. Update Database
+    const updates = {
+      xp: profile.xp + amount,
+      streak: newStreak,
+      last_active: new Date().toISOString(),
+      topics_mastered: type === 'mastery' ? profile.topics_mastered + 1 : profile.topics_mastered
+    };
+
+    await supabase.from('profiles').update(updates).eq('id', session.user.id);
+    
+    // 4. Refresh Local Data
+    fetchLeaderboard();
+  };
+
+  const fetchLeaderboard = async () => {
+    // Get Top 10 Users
+    const { data } = await supabase
+      .from('profiles')
+      .select('username, xp, streak, topics_mastered')
+      .order('xp', { ascending: false })
+      .limit(10);
+    
+    if (data) setLeaderboard(data);
+  };
+
+  // --- UPDATED USE EFFECT ---
+  useEffect(() => { 
+    fetchData(); 
+    fetchLeaderboard(); 
+    // Check purely for login streak updates without adding XP if you want, 
+    // or give +10XP just for opening the app:
+    updateXP(10, 'login'); 
+  }, [session]);
 
   async function fetchData() {
     if (!session?.user) return;
@@ -149,6 +208,7 @@ function MainApp({ session }) {
              if (!error) {
                   confetti({ particleCount: 150, spread: 60, colors: ['#2872A1', '#CBDDE9'] });
                   setMessages(prev => [...prev, { role: "bot", text: visibleText, saved: true }]);
+                  updateXP(50, 'mastery'); // <--- ADDED XP UPDATE
                   fetchData(); 
              } else {
                 setMessages(prev => [...prev, { role: "bot", text: visibleText }]);
@@ -197,9 +257,13 @@ function MainApp({ session }) {
 
   const finishTest = async () => {
     setTestState("result");
+    const earnedXP = score * 10; // 10 XP per correct answer
+    
     await supabase.from('exam_results').insert([{
       score: score, total_questions: quiz.length, topics_covered: "Mixed Vault Test", user_id: session.user.id
     }]);
+    
+    updateXP(earnedXP, 'quiz'); // <--- ADDED XP UPDATE
     fetchData();
   };
 
@@ -362,6 +426,40 @@ function MainApp({ session }) {
           </div>
         )}
 
+        {/* TAB 5: LEADERBOARD */}
+        {activeTab === 'leaderboard' && (
+          <div className="p-6 max-w-lg mx-auto space-y-6 animate-fade-in">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-serif font-bold text-white drop-shadow-lg">Hall of Fame 👑</h2>
+              <p className="text-blue-200/70 text-sm">Top Scholars in Madurai</p>
+            </div>
+
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
+              {leaderboard.map((user, index) => (
+                <div key={index} className={`flex items-center justify-between p-4 border-b border-white/5 last:border-0 ${index === 0 ? 'bg-yellow-500/10' : ''}`}>
+                  <div className="flex items-center gap-4">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                      index === 0 ? 'bg-yellow-400 text-black' : 
+                      index === 1 ? 'bg-gray-300 text-black' : 
+                      index === 2 ? 'bg-orange-400 text-black' : 'bg-white/10 text-white'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div>
+                      <div className="font-bold text-white">{user.username}</div>
+                      <div className="text-[10px] text-blue-200 flex gap-2">
+                        <span>🔥 {user.streak} Day Streak</span>
+                        <span>📚 {user.topics_mastered} Mastered</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-xl font-bold text-blue-300 drop-shadow-md">{user.xp} XP</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </main>
 
       {/* 3. INPUT AREA (Floating Glass Pill) */}
@@ -396,7 +494,8 @@ function MainApp({ session }) {
               { id: 'home', icon: <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/> },
               { id: 'vault', icon: <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/> },
               { id: 'test', icon: <><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></> },
-              { id: 'analytics', icon: <><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></> }
+              { id: 'analytics', icon: <><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></> },
+              { id: 'leaderboard', icon: <path d="M6 9H12V21H6V9ZM18 15H12V21H18V15ZM12 3L2 21H22L12 3Z" /> }
             ].map(tab => (
               <button 
                 key={tab.id} 
