@@ -3,6 +3,8 @@ import confetti from 'canvas-confetti';
 import { supabase } from './supabaseClient';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
+import { motion, AnimatePresence } from 'framer-motion';
+import Spline from '@splinetool/react-spline';
 
 // CHANGE THIS TO YOUR ACTUAL RENDER BACKEND URL
 const BACKEND_URL = "https://policy-path-ai-backend.onrender.com"; 
@@ -322,12 +324,19 @@ function MainApp({ session }) {
             <div ref={messagesEndRef} className="h-4" />
           </div>
         )}
-
-        {/* TAB 2: VAULT (Horizontal Glass Cards) */}
+        
+        {/* TAB 2: VAULT (The Physics Surfing Edition) */}
         {activeTab === 'vault' && (
           <div className="p-6 max-w-4xl mx-auto space-y-6">
-            <h2 className="text-3xl font-serif font-bold text-white mb-2 drop-shadow-lg">Mastery Vault 🏆</h2>
-            <p className="text-blue-200/70 text-sm mb-6">Concepts you have conquered.</p>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="mb-6"
+            >
+              <h2 className="text-3xl font-serif font-bold text-white mb-2 drop-shadow-lg">Mastery Vault 🏆</h2>
+              <p className="text-blue-200/70 text-sm">Your knowledge portfolio.</p>
+            </motion.div>
             
             {vault.length === 0 ? (
               <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-12 rounded-3xl text-center shadow-2xl">
@@ -336,20 +345,47 @@ function MainApp({ session }) {
                 <button onClick={() => setActiveTab('home')} className="mt-4 text-[#2872A1] font-bold text-sm underline hover:text-blue-300 transition">Start Learning</button>
               </div>
             ) : (
-              <div className="flex gap-6 overflow-x-auto hide-scrollbar pb-8 px-2 snap-x">
-                {vault.map(v => (
-                  <div key={v.id} onClick={() => setSelectedArticle(v)} 
-                       className="bg-white/5 backdrop-blur-xl min-w-[280px] w-[280px] h-[380px] p-6 rounded-3xl flex flex-col justify-between snap-center hover:scale-105 transition-transform duration-300 cursor-pointer border border-white/10 shadow-2xl relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400/20 rounded-full blur-3xl -translate-y-10 translate-x-10 group-hover:bg-blue-400/30 transition-all"></div>
-                    <div>
-                      <span className="text-[10px] bg-white/10 px-2 py-1 rounded-full uppercase tracking-widest text-blue-200 border border-white/5">Mastered</span>
-                      <h3 className="text-2xl font-serif font-bold mt-4 mb-2 leading-tight drop-shadow-md">{v.title}</h3>
-                      <p className="text-xs text-blue-100/60 line-clamp-4 leading-relaxed font-light">{v.notes}</p>
+              // 🌊 THE SURFING EFFECT: Horizontal Scroll with Physics
+              <motion.div 
+                className="flex gap-6 overflow-x-auto hide-scrollbar pb-12 px-2 snap-x"
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  visible: { transition: { staggerChildren: 0.1 } } // Each card loads 0.1s after the last
+                }}
+              >
+                {vault.map((v, i) => (
+                  <motion.div 
+                    key={v.id} 
+                    onClick={() => setSelectedArticle(v)} 
+                    variants={{
+                      hidden: { opacity: 0, x: 50, scale: 0.9 },
+                      visible: { opacity: 1, x: 0, scale: 1, transition: { type: "spring", stiffness: 100 } }
+                    }}
+                    whileHover={{ scale: 1.05, rotateZ: 1, transition: { type: "spring", stiffness: 300 } }}
+                    whileTap={{ scale: 0.95 }}
+                    className="bg-white/5 backdrop-blur-xl min-w-[280px] w-[280px] h-[380px] p-6 rounded-3xl flex flex-col justify-between snap-center cursor-pointer border border-white/10 shadow-2xl relative overflow-hidden group"
+                  >
+                    {/* Dynamic Gradient Background for "Premium" Feel */}
+                    <div className={`absolute inset-0 opacity-20 bg-gradient-to-br ${
+                      i % 3 === 0 ? 'from-blue-500 to-purple-600' : 
+                      i % 3 === 1 ? 'from-emerald-500 to-teal-600' : 
+                      'from-orange-500 to-red-600'
+                    } group-hover:opacity-40 transition-opacity duration-500`}></div>
+                    
+                    <div className="relative z-10">
+                      <span className="text-[10px] bg-white/10 px-2 py-1 rounded-full uppercase tracking-widest text-white/80 border border-white/5 shadow-sm">Mastered</span>
+                      <h3 className="text-2xl font-serif font-bold mt-4 mb-2 leading-tight drop-shadow-md text-white">{v.title}</h3>
+                      <p className="text-xs text-blue-50/70 line-clamp-4 leading-relaxed font-light">{v.notes}</p>
                     </div>
-                    <button className="text-xs font-bold uppercase tracking-widest text-left text-white/50 group-hover:text-white transition-colors">Read Note →</button>
-                  </div>
+                    <motion.button 
+                      className="relative z-10 text-xs font-bold uppercase tracking-widest text-left text-white/50 group-hover:text-white transition-colors flex items-center gap-2"
+                    >
+                      Open Card <span className="text-lg">→</span>
+                    </motion.button>
+                  </motion.div>
                 ))}
-              </div>
+              </motion.div>
             )}
           </div>
         )}
