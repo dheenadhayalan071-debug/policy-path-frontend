@@ -20,7 +20,7 @@ export default function App() {
   if (!session) {
     return (
       // 🌊 THE OCEAN GRADIENT RESTORED
-      <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-[#0F2027] via-[#203A43] to-[#2C5364] animate-gradient-slow">
+      <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-[#0F2027] via-[#203A43] to-[#2872A1] animate-gradient-slow">
         <div className="backdrop-blur-2xl bg-white/10 border border-white/20 shadow-2xl w-full max-w-md p-10 rounded-3xl animate-fade-in mx-4">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-serif text-white mb-2 tracking-widest drop-shadow-lg">POLICYPATH AI 🏛️</h1>
@@ -197,7 +197,7 @@ function MainApp({ session }) {
   // --- UI RENDER (FULL OCEAN GLASS THEME) ---
   return (
     // 🌊 RESTORED: Main Background Gradient
-    <div className="h-[100dvh] w-full bg-gradient-to-br from-[#0F2027] via-[#203A43] to-[#2C5364] text-white font-sans overflow-hidden flex flex-col">
+    <div className="h-[100dvh] w-full bg-gradient-to-br from-[#0F2027] via-[#203A43] to-[#CBDDE9] text-white font-sans overflow-hidden flex flex-col">
       
       {/* 1. HEADER (Glass) */}
       <header className="px-6 py-4 flex justify-between items-center z-50 bg-[#0F2027]/30 backdrop-blur-xl border-b border-white/10 shadow-lg">
