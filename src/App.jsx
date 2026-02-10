@@ -173,7 +173,12 @@ function MainApp({ session }) {
       const res = await fetch(`${BACKEND_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_query: topics, mode: "quiz" })
+        // 👇 FIXED: Added history: "" to satisfy backend contract
+        body: JSON.stringify({ 
+            user_query: topics, 
+            mode: "quiz",
+            history: "" 
+        })
       });
       const data = await res.json();
       const jsonStr = data.answer.replace(/```json|```/g, '').trim();
@@ -396,7 +401,7 @@ function MainApp({ session }) {
               <button 
                 key={tab.id} 
                 onClick={() => setActiveTab(tab.id)} 
-                className={`p-2 transition-all duration-300 rounded-full relative ${
+                className={`p-2 transition-all duration-300 rrounded-full relative ${
                   activeTab === tab.id ? 'text-white scale-125 drop-shadow-glow' : 'text-white/40 hover:text-white hover:scale-110'
                 }`}
               >
