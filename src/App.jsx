@@ -97,23 +97,30 @@ function MainApp({ session }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, userStorageKey]);
 
-  // --- LOGIC ---
+  // --- LOGIC (UPDATED FOR NEW BACKEND) ---
   const handleAsk = async () => {
     if (!query.trim() || loading) return;
     const userQuery = query.trim();
     setLoading(true);
     setQuery(""); 
     
+    // 1. Add User Message
     const newMessages = [...messages, { role: "user", text: userQuery }];
     setMessages(newMessages);
 
-    const historyContext = newMessages.slice(-3).map(m => `${m.role.toUpperCase()}: ${m.text}`).join("\n");
+    // 2. Prepare Context (Use 'messages' for history to exclude current query, as backend joins them)
+    const historyContext = messages.slice(-3).map(m => `${m.role.toUpperCase()}: ${m.text}`).join("\n");
 
     try {
       const res = await fetch(`${BACKEND_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_query: historyContext, mode: "chat" })
+        // 👇 UPDATED: Sending user_query and history separately
+        body: JSON.stringify({ 
+            user_query: userQuery, 
+            history: historyContext, 
+            mode: "chat" 
+        })
       });
       
       const data = await res.json();
@@ -420,4 +427,4 @@ function MainApp({ session }) {
 
     </div>
   );
-          }
+}
