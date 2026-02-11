@@ -77,6 +77,8 @@ function MainApp({ session }) {
   const [quiz, setQuiz] = useState([]);
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [score, setScore] = useState(0);
+  // 👇 NEW: Quiz Selection State
+  const [selectedOption, setSelectedOption] = useState(null);
 
   // Leaderboard & Profile States
   const [leaderboard, setLeaderboard] = useState([]);
@@ -85,14 +87,16 @@ function MainApp({ session }) {
   const [formData, setFormData] = useState({
     full_name: '', education_level: '', institution: '', city: ''
   });
+  // 👇 NEW: User Detection & SWOT View State
+  const [isNewUser, setIsNewUser] = useState(false); 
+  const [viewingSwot, setViewingSwot] = useState(null);
 
   const messagesEndRef = useRef(null);
 
-  // --- XP & STREAK LOGIC (FIXED) ---
+  // --- XP & STREAK LOGIC ---
   const updateXP = async (amount, type) => {
     if (!session?.user) return;
 
-    // 1. Get current profile
     const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
 
     if (!profile) return;
@@ -100,10 +104,8 @@ function MainApp({ session }) {
     const lastActive = new Date(profile.last_active);
     const today = new Date();
     
-    // Check if we are still on the same day as the last update
     const isSameDay = lastActive.toDateString() === today.toDateString();
     
-    // Logic: "Yesterday" for streak calculation
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const isConsecutive = lastActive.toDateString() === yesterday.toDateString();
@@ -111,22 +113,19 @@ function MainApp({ session }) {
     let newStreak = profile.streak;
     let xpToAdd = amount;
 
-    // RULE: Don't give "Login XP" if already logged in today
     if (type === 'login') {
         if (isSameDay) return; 
-        xpToAdd = 10; // Daily Login Bonus
+        xpToAdd = 10; 
     }
 
-    // Streak Calculation
     if (!isSameDay) {
         if (isConsecutive) {
             newStreak += 1; 
         } else {
-            newStreak = 1; // Broken streak, reset
+            newStreak = 1; 
         }
     }
 
-    // 3. Update Database
     const updates = {
       xp: profile.xp + xpToAdd,
       streak: newStreak,
@@ -147,17 +146,23 @@ function MainApp({ session }) {
     if (data) setLeaderboard(data);
   };
 
+  // 👇 UPDATED: Save Profile (Handles Mandatory Setup)
   const saveProfile = async () => {
+    if (!formData.full_name) return alert("Name is required!");
+
     const { error } = await supabase.from('profiles').update(formData).eq('id', session.user.id);
     if (!error) {
-      alert("Profile Updated!");
+      alert("Profile Saved Successfully!");
+      setUserProfile(prev => ({ ...prev, ...formData }));
       setEditingProfile(false);
+      setIsNewUser(false); 
       fetchData(); 
     } else {
-      alert("Error saving profile.");
+      alert("Error saving: " + error.message);
     }
   };
 
+  // 👇 UPDATED: Fetch Data (Detects New User)
   async function fetchData() {
     if (!session?.user) return;
     
@@ -166,7 +171,7 @@ function MainApp({ session }) {
     if (vData) setVault(vData);
     
     // Exam Results
-    const { data: eData } = await supabase.from('exam_results').select('score, total_questions, created_at').eq('user_id', session.user.id).order('created_at', { ascending: false });
+    const { data: eData } = await supabase.from('exam_results').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false });
     if (eData) setExamResults(eData);
 
     // Profile Data
@@ -179,6 +184,14 @@ function MainApp({ session }) {
          institution: profile.institution || '', 
          city: profile.city || '' 
        });
+
+       // 🚨 MANDATORY SETUP CHECK
+       if (!profile.full_name || profile.full_name.trim() === "") {
+          setIsNewUser(true);
+          setEditingProfile(true);
+       } else {
+          setIsNewUser(false);
+       }
     }
   }
 
@@ -275,19 +288,41 @@ function MainApp({ session }) {
     }
   };
 
+  // 👇 UPDATED: Submit Answer (Just selection)
   const submitAnswer = (option) => {
-    if (option === quiz[currentQIndex].answer) setScore(s => s + 1);
-    if (currentQIndex + 1 < quiz.length) setCurrentQIndex(i => i + 1);
-    else finishTest();
+     // Handled by UI "Next" button logic now
   };
 
+  // 👇 UPDATED: Finish Test (SWOT Generation)
   const finishTest = async () => {
     setTestState("result");
     const passed = score > 5;
     const earnedXP = passed ? 10 : 0; 
+
+    // 1. Generate SWOT
+    let aiSwot = "Strengths: Good start.\nWeakness: Needs revision.";
+    try {
+      const prompt = `Analyze this test performance: Score ${score}/10. Topics: Mixed Constitution. 
+      Generate a brief 4-line SWOT analysis (Strengths, Weaknesses, Opportunities, Threats) addressed to the student.`;
+      
+      const res = await fetch(`${BACKEND_URL}/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_query: prompt, history: "", mode: "chat" })
+      });
+      const data = await res.json();
+      aiSwot = data.answer;
+    } catch (e) {
+      console.error("SWOT Gen Failed");
+    }
     
+    // 2. Save
     await supabase.from('exam_results').insert([{
-      score: score, total_questions: quiz.length, topics_covered: "Mixed Vault Test", user_id: session.user.id
+      score: score, 
+      total_questions: quiz.length, 
+      topics_covered: "Mixed Vault Test", 
+      user_id: session.user.id,
+      swot_analysis: aiSwot 
     }]);
     
     if (earnedXP > 0) updateXP(earnedXP, 'quiz');
@@ -408,7 +443,7 @@ function MainApp({ session }) {
           </div>
         )}
 
-        {/* TAB 3: TEST PORTAL */}
+        {/* TAB 3: TEST PORTAL (Improved UI) */}
         {activeTab === 'test' && (
           <div className="h-full flex flex-col items-center justify-center animate-fade-in p-4">
             {testState === 'idle' && (
@@ -423,60 +458,117 @@ function MainApp({ session }) {
             {testState === 'loading' && <div className="animate-pulse text-xl font-serif text-blue-200">Constructing Challenge...</div>}
             
             {testState === 'active' && (
-              <div className="w-full max-w-md">
+              <div className="w-full max-w-md animate-fade-in">
                 <div className="flex justify-between text-xs text-blue-200 mb-4 uppercase font-bold tracking-widest">
-                  <span>Question {currentQIndex + 1}/10</span>
+                  <span>Question {currentQIndex + 1}/{quiz.length}</span>
                   <span>Score: {score}</span>
                 </div>
-                <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-8 rounded-3xl mb-6 relative shadow-xl">
+                
+                {/* Question Card */}
+                <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-8 rounded-3xl mb-6 relative shadow-xl min-h-[150px] flex items-center">
                   <p className="font-medium text-lg leading-relaxed">{quiz[currentQIndex].question}</p>
                 </div>
+
+                {/* Options */}
                 <div className="space-y-3">
                   {quiz[currentQIndex].options.map((opt, i) => (
-                    <button key={i} onClick={() => submitAnswer(opt)} className="w-full p-4 text-left bg-white/5 border border-white/10 rounded-xl hover:bg-white hover:text-[#2872A1] transition-all duration-200 backdrop-blur-md">{opt}</button>
+                    <button 
+                      key={i} 
+                      onClick={() => setSelectedOption(opt)} 
+                      className={`w-full p-4 text-left border rounded-xl transition-all duration-200 backdrop-blur-md flex justify-between items-center ${
+                        selectedOption === opt 
+                        ? 'bg-[#2872A1] border-[#2872A1] text-white shadow-lg scale-105' 
+                        : 'bg-white/5 border-white/10 hover:bg-white/10'
+                      }`}
+                    >
+                      {opt}
+                      {selectedOption === opt && <span>●</span>}
+                    </button>
                   ))}
                 </div>
+
+                {/* Next Button */}
+                <button 
+                  disabled={!selectedOption}
+                  onClick={() => {
+                    if (selectedOption === quiz[currentQIndex].answer) setScore(s => s + 1);
+                    setSelectedOption(null); // Reset selection
+                    if (currentQIndex + 1 < quiz.length) setCurrentQIndex(i => i + 1);
+                    else finishTest();
+                  }}
+                  className={`mt-8 w-full py-4 rounded-xl font-bold uppercase tracking-widest transition-all ${
+                    selectedOption 
+                    ? 'bg-white text-[#0F2027] shadow-xl hover:scale-105' 
+                    : 'bg-white/5 text-white/20 cursor-not-allowed'
+                  }`}
+                >
+                  {currentQIndex + 1 === quiz.length ? "Finish Test" : "Next Question →"}
+                </button>
               </div>
             )}
 
             {testState === 'result' && (
               <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-10 rounded-3xl text-center space-y-6 shadow-2xl">
                 <h2 className="text-3xl font-serif font-bold">Result</h2>
-                <div className="text-7xl font-bold drop-shadow-lg">{score} <span className="text-2xl text-white/50">/ 10</span></div>
+                <div className="text-7xl font-bold drop-shadow-lg">{score} <span className="text-2xl text-white/50">/ {quiz.length}</span></div>
+                <p className="text-sm text-blue-200">Check Analytics for your SWOT.</p>
                 <button onClick={() => setTestState('idle')} className="text-sm underline opacity-70 hover:opacity-100 transition">Close</button>
               </div>
             )}
           </div>
         )}
 
-        {/* TAB 4: ANALYTICS */}
+        {/* TAB 4: ANALYTICS (With SWOT) */}
         {activeTab === 'analytics' && (
           <div className="space-y-6 animate-fade-in max-w-lg mx-auto p-4">
             <h2 className="text-2xl font-serif font-bold px-2 drop-shadow-md">Performance</h2>
             
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-3xl text-center shadow-lg hover:bg-white/10 transition">
+              <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-3xl text-center shadow-lg">
                 <div className="text-4xl font-bold mb-1 drop-shadow-md">{vault.length}</div>
                 <div className="text-[9px] uppercase tracking-widest text-blue-200">Topics Mastered</div>
               </div>
-              <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-3xl text-center shadow-lg hover:bg-white/10 transition">
+              <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-3xl text-center shadow-lg">
                 <div className="text-4xl font-bold mb-1 drop-shadow-md">{avgScore}%</div>
                 <div className="text-[9px] uppercase tracking-widest text-blue-200">Avg Accuracy</div>
               </div>
             </div>
 
+            {/* Recent Activity List */}
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-3xl shadow-xl">
-               <h3 className="text-xs font-bold uppercase tracking-widest mb-6 opacity-70">Recent Activity</h3>
+               <h3 className="text-xs font-bold uppercase tracking-widest mb-6 opacity-70">Recent Tests (Click for SWOT)</h3>
                <div className="space-y-4">
                {examResults.length === 0 ? <p className="text-xs opacity-50">No data yet.</p> : 
                  examResults.slice(0, 5).map((res, i) => (
-                 <div key={i} className="flex justify-between text-sm items-center pb-3 border-b border-white/10 last:border-0">
-                   <span className="text-blue-100/80">{res.created_at ? new Date(res.created_at).toLocaleDateString() : 'Today'}</span>
-                   <span className="font-bold bg-white/10 px-2 py-1 rounded text-xs border border-white/5">{res.score}/{res.total_questions}</span>
+                 <div key={i} onClick={() => setViewingSwot(res)} className="flex justify-between text-sm items-center pb-3 border-b border-white/10 last:border-0 cursor-pointer hover:bg-white/5 p-2 rounded transition">
+                   <div>
+                      <div className="text-blue-100/90 font-medium">{res.topics_covered || "General Test"}</div>
+                      <div className="text-[10px] opacity-50">{new Date(res.created_at).toLocaleDateString()}</div>
+                   </div>
+                   <span className={`font-bold px-3 py-1 rounded text-xs border ${
+                     res.score >= 5 ? 'bg-green-500/20 border-green-500/30 text-green-200' : 'bg-red-500/20 border-red-500/30 text-red-200'
+                   }`}>
+                     {res.score}/{res.total_questions}
+                   </span>
                  </div>
                ))}
                </div>
             </div>
+
+            {/* SWOT MODAL */}
+            {viewingSwot && (
+              <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+                 <div className="bg-[#1a2c38] w-full max-w-sm rounded-3xl p-8 border border-white/10 shadow-2xl relative">
+                    <button onClick={() => setViewingSwot(null)} className="absolute top-4 right-4 text-white/50 hover:text-white">✕</button>
+                    <h3 className="text-2xl font-serif font-bold mb-2">AI Analysis 🧠</h3>
+                    <div className="text-sm text-blue-400 mb-6 uppercase tracking-widest font-bold">Based on Score: {viewingSwot.score}/{viewingSwot.total_questions}</div>
+                    
+                    <div className="bg-black/30 p-4 rounded-xl text-sm leading-relaxed text-blue-100/90 border border-white/5 whitespace-pre-wrap">
+                      {viewingSwot.swot_analysis || "Analysis not available for this old test."}
+                    </div>
+                 </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -514,7 +606,7 @@ function MainApp({ session }) {
           </div>
         )}
 
-        {/* TAB 6: PROFILE */}
+        {/* TAB 6: PROFILE (With Mandatory Setup) */}
         {activeTab === 'profile' && (
           <div className="p-6 max-w-lg mx-auto animate-fade-in">
             <h2 className="text-3xl font-serif font-bold text-white mb-6 drop-shadow-lg text-center">Student ID 🪪</h2>
@@ -559,10 +651,10 @@ function MainApp({ session }) {
             {editingProfile && (
               <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
                 <div className="bg-[#1a2c38] w-full max-w-md rounded-3xl p-6 border border-white/10 shadow-2xl">
-                  <h3 className="text-xl font-bold mb-4">Edit Details</h3>
+                  <h3 className="text-xl font-bold mb-4">{isNewUser ? "Setup Your Profile" : "Edit Details"}</h3>
                   <div className="space-y-4">
                     <input 
-                      placeholder="Full Name" 
+                      placeholder="Full Name (Required)" 
                       value={formData.full_name} 
                       onChange={e => setFormData({...formData, full_name: e.target.value})}
                       className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-blue-400"
@@ -587,8 +679,13 @@ function MainApp({ session }) {
                     />
                   </div>
                   <div className="flex gap-3 mt-6">
-                    <button onClick={() => setEditingProfile(false)} className="flex-1 py-3 rounded-xl text-white/50 hover:bg-white/5">Cancel</button>
-                    <button onClick={saveProfile} className="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold shadow-lg">Save</button>
+                    {/* 👇 Hide Cancel if new user */}
+                    {!isNewUser && (
+                      <button onClick={() => setEditingProfile(false)} className="flex-1 py-3 rounded-xl text-white/50 hover:bg-white/5">Cancel</button>
+                    )}
+                    <button onClick={saveProfile} className="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold shadow-lg">
+                      {isNewUser ? "Start Journey 🚀" : "Save Changes"}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -668,4 +765,4 @@ function MainApp({ session }) {
 
     </div>
   );
-}
+            }
