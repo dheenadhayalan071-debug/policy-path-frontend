@@ -9,7 +9,7 @@ import Spline from '@splinetool/react-spline';
 // CHANGE THIS TO YOUR ACTUAL RENDER BACKEND URL
 const BACKEND_URL = "https://policy-path-ai-backend.onrender.com"; 
 
-// --- 1. GATEKEEPER (Original V1 Auth) ---
+// --- 1. GATEKEEPER (Auth) ---
 export default function App() {
   const [session, setSession] = useState(null);
 
@@ -21,14 +21,12 @@ export default function App() {
 
   if (!session) {
     return (
-      // 🌊 THE OCEAN GRADIENT RESTORED
       <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-[#0F2027] via-[#203A43] to-[#2872A1] animate-gradient-slow">
         <div className="backdrop-blur-2xl bg-white/10 border border-white/20 shadow-2xl w-full max-w-md p-10 rounded-3xl animate-fade-in mx-4">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-serif text-white mb-2 tracking-widest drop-shadow-lg">POLICYPATH AI 🏛️</h1>
             <p className="text-blue-200 font-light text-sm tracking-wide">Your Personal Constitution Mentor</p>
           </div>
-          
           <Auth 
             supabaseClient={supabase} 
             appearance={{ 
@@ -42,10 +40,7 @@ export default function App() {
                     inputBackground: 'rgba(255,255,255,0.1)',
                     inputBorder: 'rgba(255,255,255,0.3)',
                   },
-                  radii: {
-                    borderRadiusButton: '12px',
-                    inputBorderRadius: '12px',
-                  }
+                  radii: { borderRadiusButton: '12px', inputBorderRadius: '12px' }
                 } 
               } 
             }}
@@ -59,10 +54,12 @@ export default function App() {
   return <MainApp session={session} />;
 }
 
-// --- 2. MAIN APP (Full Glass UI Restored) ---
+
+// --- 2. MAIN APP ---
 function MainApp({ session }) {
   const userStorageKey = `pp_chat_history_${session.user.id}`;
 
+  // --- STATES ---
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem(userStorageKey);
     return saved ? JSON.parse(saved) : [{ role: "bot", text: "Welcome. I am ready to guide you through the Constitution.", type: "mentor" }];
@@ -81,107 +78,139 @@ function MainApp({ session }) {
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [score, setScore] = useState(0);
 
-  // --- NEW LEADERBOARD STATE ---
+  // Leaderboard & Profile States
   const [leaderboard, setLeaderboard] = useState([]);
   const [userProfile, setUserProfile] = useState(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [formData, setFormData] = useState({
+    full_name: '', education_level: '', institution: '', city: ''
+  });
 
   const messagesEndRef = useRef(null);
 
-  // --- XP & LEADERBOARD LOGIC ---
+  // --- XP & STREAK LOGIC (FIXED) ---
   const updateXP = async (amount, type) => {
     if (!session?.user) return;
 
     // 1. Get current profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', session.user.id)
-      .single();
+    const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
 
     if (!profile) return;
 
-    // 2. Calculate Streak
     const lastActive = new Date(profile.last_active);
     const today = new Date();
-    const diffTime = Math.abs(today - lastActive);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    
+    // Check if we are still on the same day as the last update
+    const isSameDay = lastActive.toDateString() === today.toDateString();
+    
+    // Logic: "Yesterday" for streak calculation
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isConsecutive = lastActive.toDateString() === yesterday.toDateString();
 
     let newStreak = profile.streak;
-    if (diffDays === 1) newStreak += 1; // Consecutive day
-    else if (diffDays > 1) newStreak = 1; // Missed a day, reset
+    let xpToAdd = amount;
+
+    // RULE: Don't give "Login XP" if already logged in today
+    if (type === 'login') {
+        if (isSameDay) return; 
+        xpToAdd = 10; // Daily Login Bonus
+    }
+
+    // Streak Calculation
+    if (!isSameDay) {
+        if (isConsecutive) {
+            newStreak += 1; 
+        } else {
+            newStreak = 1; // Broken streak, reset
+        }
+    }
 
     // 3. Update Database
     const updates = {
-      xp: profile.xp + amount,
+      xp: profile.xp + xpToAdd,
       streak: newStreak,
       last_active: new Date().toISOString(),
       topics_mastered: type === 'mastery' ? profile.topics_mastered + 1 : profile.topics_mastered
     };
 
     await supabase.from('profiles').update(updates).eq('id', session.user.id);
-    
-    // 4. Refresh Local Data
     fetchLeaderboard();
   };
 
   const fetchLeaderboard = async () => {
-    // Get Top 10 Users
     const { data } = await supabase
       .from('profiles')
       .select('username, xp, streak, topics_mastered')
       .order('xp', { ascending: false })
       .limit(10);
-    
     if (data) setLeaderboard(data);
   };
 
-  // --- UPDATED USE EFFECT ---
-  useEffect(() => { 
-    fetchData(); 
-    fetchLeaderboard(); 
-    // Check purely for login streak updates without adding XP if you want, 
-    // or give +10XP just for opening the app:
-    updateXP(10, 'login'); 
-  }, [session]);
+  const saveProfile = async () => {
+    const { error } = await supabase.from('profiles').update(formData).eq('id', session.user.id);
+    if (!error) {
+      alert("Profile Updated!");
+      setEditingProfile(false);
+      fetchData(); 
+    } else {
+      alert("Error saving profile.");
+    }
+  };
 
   async function fetchData() {
     if (!session?.user) return;
+    
+    // Vault
     const { data: vData } = await supabase.from('vault').select('*').eq('user_id', session.user.id).order('id', { ascending: false });
     if (vData) setVault(vData);
     
+    // Exam Results
     const { data: eData } = await supabase.from('exam_results').select('score, total_questions, created_at').eq('user_id', session.user.id).order('created_at', { ascending: false });
     if (eData) setExamResults(eData);
+
+    // Profile Data
+    const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+    if (profile) {
+       setUserProfile(profile);
+       setFormData({ 
+         full_name: profile.full_name || '', 
+         education_level: profile.education_level || '', 
+         institution: profile.institution || '', 
+         city: profile.city || '' 
+       });
+    }
   }
+
+  // --- EFFECT HOOKS ---
+  useEffect(() => { 
+    fetchData(); 
+    fetchLeaderboard(); 
+    updateXP(0, 'login'); 
+  }, [session]);
 
   useEffect(() => {
     localStorage.setItem(userStorageKey, JSON.stringify(messages));
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, userStorageKey]);
 
-  // --- LOGIC (UPDATED FOR NEW BACKEND) ---
+  // --- CORE FEATURES ---
   const handleAsk = async () => {
     if (!query.trim() || loading) return;
     const userQuery = query.trim();
     setLoading(true);
     setQuery(""); 
     
-    // 1. Add User Message
     const newMessages = [...messages, { role: "user", text: userQuery }];
     setMessages(newMessages);
 
-    // 2. Prepare Context (Use 'messages' for history to exclude current query, as backend joins them)
     const historyContext = messages.slice(-3).map(m => `${m.role.toUpperCase()}: ${m.text}`).join("\n");
 
     try {
       const res = await fetch(`${BACKEND_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // 👇 UPDATED: Sending user_query and history separately
-        body: JSON.stringify({ 
-            user_query: userQuery, 
-            history: historyContext, 
-            mode: "chat" 
-        })
+        body: JSON.stringify({ user_query: userQuery, history: historyContext, mode: "chat" })
       });
       
       const data = await res.json();
@@ -210,7 +239,7 @@ function MainApp({ session }) {
              if (!error) {
                   confetti({ particleCount: 150, spread: 60, colors: ['#2872A1', '#CBDDE9'] });
                   setMessages(prev => [...prev, { role: "bot", text: visibleText, saved: true }]);
-                  updateXP(50, 'mastery'); // <--- ADDED XP UPDATE
+                  updateXP(25, 'mastery'); 
                   fetchData(); 
              } else {
                 setMessages(prev => [...prev, { role: "bot", text: visibleText }]);
@@ -235,12 +264,7 @@ function MainApp({ session }) {
       const res = await fetch(`${BACKEND_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // 👇 FIXED: Added history: "" to satisfy backend contract
-        body: JSON.stringify({ 
-            user_query: topics, 
-            mode: "quiz",
-            history: "" 
-        })
+        body: JSON.stringify({ user_query: topics, mode: "quiz", history: "" })
       });
       const data = await res.json();
       const jsonStr = data.answer.replace(/```json|```/g, '').trim();
@@ -259,25 +283,25 @@ function MainApp({ session }) {
 
   const finishTest = async () => {
     setTestState("result");
-    const earnedXP = score * 10; // 10 XP per correct answer
+    const passed = score > 5;
+    const earnedXP = passed ? 10 : 0; 
     
     await supabase.from('exam_results').insert([{
       score: score, total_questions: quiz.length, topics_covered: "Mixed Vault Test", user_id: session.user.id
     }]);
     
-    updateXP(earnedXP, 'quiz'); // <--- ADDED XP UPDATE
+    if (earnedXP > 0) updateXP(earnedXP, 'quiz');
     fetchData();
   };
 
   const avgScore = examResults.length > 0 
     ? Math.round(examResults.reduce((acc, curr) => acc + (curr.score / curr.total_questions) * 100, 0) / examResults.length) : 0;
 
-  // --- UI RENDER (FULL OCEAN GLASS THEME) ---
+  // --- UI RENDER ---
   return (
-    // 🌊 RESTORED: Main Background Gradient
     <div className="h-[100dvh] w-full bg-gradient-to-br from-[#0F2027] via-[#203A43] to-[#CBDDE9] text-white font-sans overflow-hidden flex flex-col">
       
-      {/* 1. HEADER (Glass) */}
+      {/* HEADER */}
       <header className="px-6 py-4 flex justify-between items-center z-50 bg-[#0F2027]/30 backdrop-blur-xl border-b border-white/10 shadow-lg">
         <div className="flex items-center gap-2">
            <span className="text-2xl drop-shadow-md">🏛️</span>
@@ -289,7 +313,7 @@ function MainApp({ session }) {
         </div>
       </header>
 
-      {/* 2. MAIN CONTENT AREA */}
+      {/* MAIN CONTENT AREA */}
       <main className="flex-1 overflow-y-auto pb-32 scroll-smooth">
         
         {/* TAB 1: HOME */}
@@ -312,7 +336,6 @@ function MainApp({ session }) {
                 </div>
               </div>
             ))}
-            
             {loading && (
               <div className="flex justify-start animate-pulse pl-4">
                  <div className="flex items-center gap-2 text-xs text-blue-200/80 bg-white/5 px-4 py-2 rounded-full border border-white/10 backdrop-blur-md">
@@ -324,8 +347,8 @@ function MainApp({ session }) {
             <div ref={messagesEndRef} className="h-4" />
           </div>
         )}
-        
-        {/* TAB 2: VAULT (The Physics Surfing Edition) */}
+
+        {/* TAB 2: VAULT (Physics Edition) */}
         {activeTab === 'vault' && (
           <div className="p-6 max-w-4xl mx-auto space-y-6">
             <motion.div 
@@ -345,13 +368,12 @@ function MainApp({ session }) {
                 <button onClick={() => setActiveTab('home')} className="mt-4 text-[#2872A1] font-bold text-sm underline hover:text-blue-300 transition">Start Learning</button>
               </div>
             ) : (
-              // 🌊 THE SURFING EFFECT: Horizontal Scroll with Physics
               <motion.div 
                 className="flex gap-6 overflow-x-auto hide-scrollbar pb-12 px-2 snap-x"
                 initial="hidden"
                 animate="visible"
                 variants={{
-                  visible: { transition: { staggerChildren: 0.1 } } // Each card loads 0.1s after the last
+                  visible: { transition: { staggerChildren: 0.1 } } 
                 }}
               >
                 {vault.map((v, i) => (
@@ -366,21 +388,17 @@ function MainApp({ session }) {
                     whileTap={{ scale: 0.95 }}
                     className="bg-white/5 backdrop-blur-xl min-w-[280px] w-[280px] h-[380px] p-6 rounded-3xl flex flex-col justify-between snap-center cursor-pointer border border-white/10 shadow-2xl relative overflow-hidden group"
                   >
-                    {/* Dynamic Gradient Background for "Premium" Feel */}
                     <div className={`absolute inset-0 opacity-20 bg-gradient-to-br ${
                       i % 3 === 0 ? 'from-blue-500 to-purple-600' : 
                       i % 3 === 1 ? 'from-emerald-500 to-teal-600' : 
                       'from-orange-500 to-red-600'
                     } group-hover:opacity-40 transition-opacity duration-500`}></div>
-                    
                     <div className="relative z-10">
                       <span className="text-[10px] bg-white/10 px-2 py-1 rounded-full uppercase tracking-widest text-white/80 border border-white/5 shadow-sm">Mastered</span>
                       <h3 className="text-2xl font-serif font-bold mt-4 mb-2 leading-tight drop-shadow-md text-white">{v.title}</h3>
                       <p className="text-xs text-blue-50/70 line-clamp-4 leading-relaxed font-light">{v.notes}</p>
                     </div>
-                    <motion.button 
-                      className="relative z-10 text-xs font-bold uppercase tracking-widest text-left text-white/50 group-hover:text-white transition-colors flex items-center gap-2"
-                    >
+                    <motion.button className="relative z-10 text-xs font-bold uppercase tracking-widest text-left text-white/50 group-hover:text-white transition-colors flex items-center gap-2">
                       Open Card <span className="text-lg">→</span>
                     </motion.button>
                   </motion.div>
@@ -467,7 +485,7 @@ function MainApp({ session }) {
           <div className="p-6 max-w-lg mx-auto space-y-6 animate-fade-in">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-serif font-bold text-white drop-shadow-lg">Hall of Fame 👑</h2>
-              <p className="text-blue-200/70 text-sm">Top Scholars in Madurai</p>
+              <p className="text-blue-200/70 text-sm">Top Scholars Globally</p>
             </div>
 
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
@@ -496,9 +514,91 @@ function MainApp({ session }) {
           </div>
         )}
 
+        {/* TAB 6: PROFILE */}
+        {activeTab === 'profile' && (
+          <div className="p-6 max-w-lg mx-auto animate-fade-in">
+            <h2 className="text-3xl font-serif font-bold text-white mb-6 drop-shadow-lg text-center">Student ID 🪪</h2>
+            
+            {/* ID CARD DISPLAY */}
+            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 shadow-2xl relative overflow-hidden mb-8">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+               
+               <div className="flex items-center gap-4 mb-6">
+                 <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-2xl shadow-lg">
+                   {userProfile?.student_level?.includes('Grandmaster') ? '👑' : '🎓'}
+                 </div>
+                 <div>
+                   <h3 className="text-xl font-bold text-white">{userProfile?.full_name || session.user.email.split('@')[0]}</h3>
+                   <span className="text-xs bg-blue-500/30 px-2 py-1 rounded text-blue-100 border border-blue-400/30">
+                     {userProfile?.student_level || 'Novice 🌱'}
+                   </span>
+                 </div>
+               </div>
+
+               <div className="space-y-3 text-sm text-blue-100/80">
+                 <div className="flex justify-between border-b border-white/5 pb-2">
+                   <span>🎓 Education</span>
+                   <span className="font-bold text-white">{userProfile?.education_level || 'Not set'}</span>
+                 </div>
+                 <div className="flex justify-between border-b border-white/5 pb-2">
+                   <span>🏫 Institution</span>
+                   <span className="font-bold text-white">{userProfile?.institution || 'Not set'}</span>
+                 </div>
+                 <div className="flex justify-between border-b border-white/5 pb-2">
+                   <span>📍 City</span>
+                   <span className="font-bold text-white">{userProfile?.city || 'Not set'}</span>
+                 </div>
+               </div>
+
+               <button onClick={() => setEditingProfile(true)} className="mt-6 w-full bg-white/10 hover:bg-white/20 py-2 rounded-xl text-xs uppercase tracking-widest font-bold transition">
+                 Edit Profile
+               </button>
+            </div>
+
+            {/* EDIT MODAL OVERLAY */}
+            {editingProfile && (
+              <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+                <div className="bg-[#1a2c38] w-full max-w-md rounded-3xl p-6 border border-white/10 shadow-2xl">
+                  <h3 className="text-xl font-bold mb-4">Edit Details</h3>
+                  <div className="space-y-4">
+                    <input 
+                      placeholder="Full Name" 
+                      value={formData.full_name} 
+                      onChange={e => setFormData({...formData, full_name: e.target.value})}
+                      className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-blue-400"
+                    />
+                    <input 
+                      placeholder="Class / Degree (e.g. 12th Grade)" 
+                      value={formData.education_level} 
+                      onChange={e => setFormData({...formData, education_level: e.target.value})}
+                      className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-blue-400"
+                    />
+                    <input 
+                      placeholder="School / College" 
+                      value={formData.institution} 
+                      onChange={e => setFormData({...formData, institution: e.target.value})}
+                      className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-blue-400"
+                    />
+                    <input 
+                      placeholder="City" 
+                      value={formData.city} 
+                      onChange={e => setFormData({...formData, city: e.target.value})}
+                      className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-blue-400"
+                    />
+                  </div>
+                  <div className="flex gap-3 mt-6">
+                    <button onClick={() => setEditingProfile(false)} className="flex-1 py-3 rounded-xl text-white/50 hover:bg-white/5">Cancel</button>
+                    <button onClick={saveProfile} className="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold shadow-lg">Save</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
       </main>
 
-      {/* 3. INPUT AREA (Floating Glass Pill) */}
+      {/* 3. INPUT AREA (Home only) */}
       {activeTab === 'home' && (
         <div className="fixed bottom-24 w-full px-4 max-w-2xl mx-auto left-0 right-0 z-40">
            <div className="bg-[#0F2027]/60 backdrop-blur-2xl border border-white/20 p-2 rounded-full flex items-center shadow-2xl ring-1 ring-white/10">
@@ -523,20 +623,21 @@ function MainApp({ session }) {
         </div>
       )}
 
-      {/* 4. BOTTOM NAVIGATION DOCK (Floating Glass Bar) */}
+      {/* 4. BOTTOM NAVIGATION */}
       <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-         <nav className="bg-black/40 backdrop-blur-2xl border border-white/10 rounded-full px-8 py-4 flex gap-8 shadow-2xl ring-1 ring-white/5">
+         <nav className="bg-black/40 backdrop-blur-2xl border border-white/10 rounded-full px-8 py-4 flex gap-6 shadow-2xl ring-1 ring-white/5">
             {[
               { id: 'home', icon: <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/> },
               { id: 'vault', icon: <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/> },
               { id: 'test', icon: <><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></> },
               { id: 'analytics', icon: <><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></> },
-              { id: 'leaderboard', icon: <path d="M6 9H12V21H6V9ZM18 15H12V21H18V15ZM12 3L2 21H22L12 3Z" /> }
+              { id: 'leaderboard', icon: <path d="M6 9H12V21H6V9ZM18 15H12V21H18V15ZM12 3L2 21H22L12 3Z" /> },
+              { id: 'profile', icon: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></> }
             ].map(tab => (
               <button 
                 key={tab.id} 
                 onClick={() => setActiveTab(tab.id)} 
-                className={`p-2 transition-all duration-300 rrounded-full relative ${
+                className={`p-2 transition-all duration-300 rounded-full relative ${
                   activeTab === tab.id ? 'text-white scale-125 drop-shadow-glow' : 'text-white/40 hover:text-white hover:scale-110'
                 }`}
               >
@@ -549,7 +650,7 @@ function MainApp({ session }) {
          </nav>
       </div>
 
-      {/* 5. READING MODAL (Deep Overlay) */}
+      {/* 5. READING MODAL */}
       {selectedArticle && (
         <div className="fixed inset-0 z-[60] bg-[#0F2027]/90 backdrop-blur-xl flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-[#1a2c38]/80 w-full max-w-lg max-h-[80vh] rounded-[2rem] p-8 overflow-y-auto border border-white/10 relative shadow-2xl ring-1 ring-white/5">
