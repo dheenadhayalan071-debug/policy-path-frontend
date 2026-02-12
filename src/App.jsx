@@ -165,33 +165,47 @@ function MainApp({ session }) {
   // 👇 UPDATED: Fetch Data (Detects New User)
   async function fetchData() {
     if (!session?.user) return;
-    
-    // Vault
-    const { data: vData } = await supabase.from('vault').select('*').eq('user_id', session.user.id).order('id', { ascending: false });
-    if (vData) setVault(vData);
-    
-    // Exam Results
-    const { data: eData } = await supabase.from('exam_results').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false });
-    if (eData) setExamResults(eData);
 
-    // Profile Data
-    const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-    if (profile) {
-       setUserProfile(profile);
-       setFormData({ 
-         full_name: profile.full_name || '', 
-         education_level: profile.education_level || '', 
-         institution: profile.institution || '', 
-         city: profile.city || '' 
-       });
+    try {
+      // 1. Vault
+      const { data: vData } = await supabase.from('vault').select('*').eq('user_id', session.user.id).order('id', { ascending: false });
+      if (vData) setVault(vData);
+
+     // 2. Exam Results
+      const { data: eData } = await supabase.from('exam_results').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false });
+      if (eData) setExamResults(eData);
+
+    // 3. Profile Data (SAFER FETCH)
+      const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      
+      if (error) {
+        console.error("Profile Fetch Error:", error.message);
+        return; // Stop here if error, don't wipe local state
+      }
+
+      if (profile) {
+         console.log("Profile Loaded:", profile); // Debugging: See what DB returns
+         setUserProfile(profile);
+
+        // Only update form data if we actually got values back
+         setFormData(prev => ({ 
+           full_name: profile.full_name || prev.full_name || '', 
+           education_level: profile.education_level || prev.education_level || '', 
+           institution: profile.institution || prev.institution || '', 
+           city: profile.city || prev.city || '' 
+         }));
 
        // 🚨 MANDATORY SETUP CHECK
-       if (!profile.full_name || profile.full_name.trim() === "") {
-          setIsNewUser(true);
-          setEditingProfile(true);
-       } else {
-          setIsNewUser(false);
-       }
+         // Only trigger if name is TRULY missing from DB
+         if (!profile.full_name || profile.full_name.trim() === "") {
+            setIsNewUser(true);
+            setEditingProfile(true);
+         } else {
+            setIsNewUser(false);
+         }
+      }
+    } catch (err) {
+      console.error("Unexpected Error:", err);
     }
   }
 
