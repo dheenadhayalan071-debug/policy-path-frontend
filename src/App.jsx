@@ -6,65 +6,87 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { motion, AnimatePresence } from 'framer-motion';
 import Spline from '@splinetool/react-spline';
 
-// CHANGE THIS TO YOUR ACTUAL RENDER BACKEND URL
 const BACKEND_URL = "https://policy-path-ai-backend.onrender.com"; 
 
-// --- 1. GATEKEEPER (Auth) ---
+// --- 1. THE VELVET ROPE (Auth Modal & Wrapper) ---
 export default function App() {
   const [session, setSession] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsInitialLoad(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if(session) setShowAuthModal(false); // Close modal automatically on login
+    });
     return () => subscription.unsubscribe();
   }, []);
 
-  if (!session) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-[#0F2027] via-[#203A43] to-[#2872A1] animate-gradient-slow">
-        <div className="backdrop-blur-2xl bg-white/10 border border-white/20 shadow-2xl w-full max-w-md p-10 rounded-3xl animate-fade-in mx-4">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-serif text-white mb-2 tracking-widest drop-shadow-lg">POLICYPATH AI 🏛️</h1>
-            <p className="text-blue-200 font-light text-sm tracking-wide">Your Personal Constitution Mentor</p>
-          </div>
-          <Auth 
-            supabaseClient={supabase} 
-            appearance={{ 
-              theme: ThemeSupa, 
-              variables: { 
-                default: { 
-                  colors: { 
-                    brand: '#2872A1', 
-                    brandAccent: '#154360',
-                    inputText: 'white',
-                    inputBackground: 'rgba(255,255,255,0.1)',
-                    inputBorder: 'rgba(255,255,255,0.3)',
-                  },
-                  radii: { borderRadiusButton: '12px', inputBorderRadius: '12px' }
-                } 
-              } 
-            }}
-            theme="dark"
-            providers={['google']} 
-          />
-        </div>
-      </div>
-    );
-  }
-  return <MainApp session={session} />;
+  // Show nothing while checking for session to prevent flashing
+  if (isInitialLoad) return <div className="h-screen w-screen bg-[#0F2027]"></div>;
+
+  return (
+    <>
+      {/* Main app is ALWAYS rendered, even for guests */}
+      <MainApp session={session} triggerAuth={() => setShowAuthModal(true)} />
+
+      {/* Auth Modal overlay triggers when guest limit hit or protected tab clicked */}
+      <AnimatePresence>
+        {showAuthModal && !session && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
+              className="bg-gradient-to-br from-[#0F2027] to-[#203A43] border border-white/20 shadow-2xl w-full max-w-md p-10 rounded-3xl relative"
+            >
+              <button 
+                onClick={() => setShowAuthModal(false)}
+                className="absolute top-4 right-6 text-white/50 hover:text-white text-xl font-bold"
+              >
+                ✕
+              </button>
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-serif text-white mb-2 tracking-widest drop-shadow-lg">Unlock PolicyPath</h1>
+                <p className="text-blue-200 font-light text-sm tracking-wide">Save your progress, access the Vault, and keep learning.</p>
+              </div>
+              <Auth 
+                supabaseClient={supabase} 
+                appearance={{ 
+                  theme: ThemeSupa, 
+                  variables: { default: { colors: { brand: '#2872A1', brandAccent: '#154360', inputText: 'white' } } } 
+                }}
+                theme="dark" providers={['google']} 
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
 }
 
-
 // --- 2. MAIN APP ---
-function MainApp({ session }) {
-  const userStorageKey = `pp_chat_history_${session.user.id}`;
+function MainApp({ session, triggerAuth }) {
+  // Use a guest storage key if no session exists
+  const userStorageKey = session ? `pp_chat_history_${session.user.id}` : `pp_chat_history_guest`;
 
   // --- STATES ---
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem(userStorageKey);
-    return saved ? JSON.parse(saved) : [{ role: "bot", text: "Welcome. I am ready to guide you through the Constitution.", type: "mentor" }];
+    return saved ? JSON.parse(saved) : [{ role: "bot", text: "Welcome. I am ready to guide you through the Constitution. Ask me anything to start.", type: "mentor" }];
   });
   
+  // NEW: Track guest usage
+  const [guestMessageCount, setGuestMessageCount] = useState(() => {
+    return parseInt(localStorage.getItem('pp_guest_count') || '0', 10);
+  });
+
   const [vault, setVault] = useState([]);
   const [examResults, setExamResults] = useState([]);
   const [query, setQuery] = useState("");
@@ -77,33 +99,35 @@ function MainApp({ session }) {
   const [quiz, setQuiz] = useState([]);
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [score, setScore] = useState(0);
-  // 👇 NEW: Quiz Selection State
   const [selectedOption, setSelectedOption] = useState(null);
 
   // Leaderboard & Profile States
   const [leaderboard, setLeaderboard] = useState([]);
   const [userProfile, setUserProfile] = useState(null);
   const [editingProfile, setEditingProfile] = useState(false);
-  const [formData, setFormData] = useState({
-    full_name: '', education_level: '', institution: '', city: ''
-  });
-  // 👇 NEW: User Detection & SWOT View State
+  const [formData, setFormData] = useState({ full_name: '', education_level: '', institution: '', city: '' });
   const [isNewUser, setIsNewUser] = useState(false); 
   const [viewingSwot, setViewingSwot] = useState(null);
 
   const messagesEndRef = useRef(null);
 
+  // NEW: Tab Navigation Protection
+  const handleTabChange = (tabName) => {
+    if (!session && tabName !== 'home') {
+      triggerAuth(); // Block guests from accessing Vault/Tests
+      return;
+    }
+    setActiveTab(tabName);
+  };
+
   // --- XP & STREAK LOGIC ---
   const updateXP = async (amount, type) => {
     if (!session?.user) return;
-
     const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-
     if (!profile) return;
 
     const lastActive = new Date(profile.last_active);
     const today = new Date();
-    
     const isSameDay = lastActive.toDateString() === today.toDateString();
     
     const yesterday = new Date();
@@ -119,11 +143,8 @@ function MainApp({ session }) {
     }
 
     if (!isSameDay) {
-        if (isConsecutive) {
-            newStreak += 1; 
-        } else {
-            newStreak = 1; 
-        }
+        if (isConsecutive) { newStreak += 1; } 
+        else { newStreak = 1; }
     }
 
     const updates = {
@@ -138,18 +159,12 @@ function MainApp({ session }) {
   };
 
   const fetchLeaderboard = async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('username, xp, streak, topics_mastered')
-      .order('xp', { ascending: false })
-      .limit(10);
+    const { data } = await supabase.from('profiles').select('username, xp, streak, topics_mastered').order('xp', { ascending: false }).limit(10);
     if (data) setLeaderboard(data);
   };
 
-  // 👇 UPDATED: Save Profile (Handles Mandatory Setup)
   const saveProfile = async () => {
     if (!formData.full_name) return alert("Name is required!");
-
     const { error } = await supabase.from('profiles').update(formData).eq('id', session.user.id);
     if (!error) {
       alert("Profile Saved Successfully!");
@@ -162,32 +177,24 @@ function MainApp({ session }) {
     }
   };
 
-  // 👇 UPDATED: Fetch Data (Detects New User)
   async function fetchData() {
     if (!session?.user) return;
-
     try {
-      // 1. Vault
       const { data: vData } = await supabase.from('vault').select('*').eq('user_id', session.user.id).order('id', { ascending: false });
       if (vData) setVault(vData);
 
-     // 2. Exam Results
       const { data: eData } = await supabase.from('exam_results').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false });
       if (eData) setExamResults(eData);
 
-    // 3. Profile Data (SAFER FETCH)
       const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
       
       if (error) {
         console.error("Profile Fetch Error:", error.message);
-        return; // Stop here if error, don't wipe local state
+        return; 
       }
 
       if (profile) {
-         console.log("Profile Loaded:", profile); // Debugging: See what DB returns
          setUserProfile(profile);
-
-        // Only update form data if we actually got values back
          setFormData(prev => ({ 
            full_name: profile.full_name || prev.full_name || '', 
            education_level: profile.education_level || prev.education_level || '', 
@@ -195,8 +202,6 @@ function MainApp({ session }) {
            city: profile.city || prev.city || '' 
          }));
 
-       // 🚨 MANDATORY SETUP CHECK
-         // Only trigger if name is TRULY missing from DB
          if (!profile.full_name || profile.full_name.trim() === "") {
             setIsNewUser(true);
             setEditingProfile(true);
@@ -224,12 +229,26 @@ function MainApp({ session }) {
   // --- CORE FEATURES ---
   const handleAsk = async () => {
     if (!query.trim() || loading) return;
+
+    // NEW: Enforce Guest Limit (2 messages)
+    if (!session && guestMessageCount >= 2) {
+      triggerAuth();
+      return;
+    }
+
     const userQuery = query.trim();
     setLoading(true);
     setQuery(""); 
     
     const newMessages = [...messages, { role: "user", text: userQuery }];
     setMessages(newMessages);
+
+    // Update guest counter
+    if (!session) {
+      const newCount = guestMessageCount + 1;
+      setGuestMessageCount(newCount);
+      localStorage.setItem('pp_guest_count', newCount.toString());
+    }
 
     const historyContext = messages.slice(-3).map(m => `${m.role.toUpperCase()}: ${m.text}`).join("\n");
 
@@ -254,27 +273,39 @@ function MainApp({ session }) {
         if (hiddenPart.includes("Topic:")) topicTitle = hiddenPart.split("Topic:")[1].split("\n")[0].trim().replace(/\*/g, ''); 
         if (hiddenPart.includes("Summary:")) topicSummary = hiddenPart.split("Summary:")[1].trim().replace(/\*/g, '');
 
-        const isDuplicate = vault.some(v => v.title.toLowerCase() === topicTitle.toLowerCase());
+        if (session) {
+          const isDuplicate = vault.some(v => v.title.toLowerCase() === topicTitle.toLowerCase());
+          if (isDuplicate) {
+               setMessages(prev => [...prev, { role: "bot", text: `${visibleText}\n\n(Note: You already mastered "${topicTitle}".)` }]);
+          } else {
+               const { error } = await supabase.from('vault').insert([{ 
+                 title: topicTitle, status: 'Mastered', notes: topicSummary, user_id: session.user.id
+               }]);
 
-        if (isDuplicate) {
-             setMessages(prev => [...prev, { role: "bot", text: `${visibleText}\n\n(Note: You already mastered "${topicTitle}".)` }]);
+               if (!error) {
+                    confetti({ particleCount: 150, spread: 60, colors: ['#2872A1', '#CBDDE9'] });
+                    setMessages(prev => [...prev, { role: "bot", text: visibleText, saved: true }]);
+                    updateXP(25, 'mastery'); 
+                    fetchData(); 
+               } else {
+                  setMessages(prev => [...prev, { role: "bot", text: visibleText }]);
+               }
+          }
         } else {
-             const { error } = await supabase.from('vault').insert([{ 
-               title: topicTitle, status: 'Mastered', notes: topicSummary, user_id: session.user.id
-             }]);
-
-             if (!error) {
-                  confetti({ particleCount: 150, spread: 60, colors: ['#2872A1', '#CBDDE9'] });
-                  setMessages(prev => [...prev, { role: "bot", text: visibleText, saved: true }]);
-                  updateXP(25, 'mastery'); 
-                  fetchData(); 
-             } else {
-                setMessages(prev => [...prev, { role: "bot", text: visibleText }]);
-             }
+          // Guest mode: Don't save to DB, just show the message
+          setMessages(prev => [...prev, { role: "bot", text: visibleText }]);
         }
       } else {
         setMessages(prev => [...prev, { role: "bot", text: aiText }]);
       }
+
+      // NEW: Hook the guest after their 2nd message
+      if (!session && guestMessageCount + 1 === 2) {
+        setTimeout(() => {
+          setMessages(prev => [...prev, { role: "bot", text: "🎉 Great question! You've unlocked 5 XP. Sign in to save this to your Mastery Vault and continue chatting." }]);
+        }, 1000);
+      }
+
     } catch (e) {
       setMessages(prev => [...prev, { role: "bot", text: `⚠️ Network Error. Please try again.` }]);
     } finally {
@@ -302,18 +333,15 @@ function MainApp({ session }) {
     }
   };
 
-  // 👇 UPDATED: Submit Answer (Just selection)
   const submitAnswer = (option) => {
      // Handled by UI "Next" button logic now
   };
 
-  // 👇 UPDATED: Finish Test (SWOT Generation)
   const finishTest = async () => {
     setTestState("result");
     const passed = score > 5;
     const earnedXP = passed ? 10 : 0; 
 
-    // 1. Generate SWOT
     let aiSwot = "Strengths: Good start.\nWeakness: Needs revision.";
     try {
       const prompt = `Analyze this test performance: Score ${score}/10. Topics: Mixed Constitution. 
@@ -330,7 +358,6 @@ function MainApp({ session }) {
       console.error("SWOT Gen Failed");
     }
     
-    // 2. Save
     await supabase.from('exam_results').insert([{
       score: score, 
       total_questions: quiz.length, 
@@ -342,9 +369,6 @@ function MainApp({ session }) {
     if (earnedXP > 0) updateXP(earnedXP, 'quiz');
     fetchData();
   };
-
-  const avgScore = examResults.length > 0 
-    ? Math.round(examResults.reduce((acc, curr) => acc + (curr.score / curr.total_questions) * 100, 0) / examResults.length) : 0;
 
   // --- UI RENDER ---
   return (
@@ -358,7 +382,13 @@ function MainApp({ session }) {
         </div>
         <div className="flex items-center gap-3">
            <div className="text-[10px] font-bold bg-[#2872A1]/20 text-blue-200 px-2 py-1 rounded border border-[#2872A1]/30 backdrop-blur-md">BETA 2.0</div>
-           <button onClick={() => supabase.auth.signOut()} className="text-[10px] font-bold text-red-200/70 hover:text-red-200 transition">EXIT</button>
+           
+           {/* NEW: Dynamic Header Auth Button */}
+           {session ? (
+             <button onClick={() => supabase.auth.signOut()} className="text-[10px] font-bold text-red-200/70 hover:text-red-200 transition">EXIT</button>
+           ) : (
+             <button onClick={triggerAuth} className="text-[10px] font-bold text-green-200/70 hover:text-green-200 transition">SIGN IN</button>
+           )}
         </div>
       </header>
 
@@ -396,7 +426,7 @@ function MainApp({ session }) {
             <div ref={messagesEndRef} className="h-4" />
           </div>
         )}
-
+        
         {/* TAB 2: VAULT (Physics Edition) */}
         {activeTab === 'vault' && (
           <div className="p-6 max-w-4xl mx-auto space-y-6">
