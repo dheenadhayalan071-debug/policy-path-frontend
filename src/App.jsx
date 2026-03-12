@@ -73,7 +73,6 @@ export default function App() {
 
 // --- 2. MAIN APP ---
 function MainApp({ session, triggerAuth }) {
-  // Use a guest storage key if no session exists
   const userStorageKey = session ? `pp_chat_history_${session.user.id}` : `pp_chat_history_guest`;
 
   // --- STATES ---
@@ -82,7 +81,6 @@ function MainApp({ session, triggerAuth }) {
     return saved ? JSON.parse(saved) : [{ role: "bot", text: "Welcome. I am ready to guide you through the Constitution. Ask me anything to start.", type: "mentor" }];
   });
   
-  // NEW: Track guest usage
   const [guestMessageCount, setGuestMessageCount] = useState(() => {
     return parseInt(localStorage.getItem('pp_guest_count') || '0', 10);
   });
@@ -94,12 +92,13 @@ function MainApp({ session, triggerAuth }) {
   const [activeTab, setActiveTab] = useState('home');
   const [selectedArticle, setSelectedArticle] = useState(null);
   
-  // Quiz States
+  // Quiz & Token States
   const [testState, setTestState] = useState("idle"); 
   const [quiz, setQuiz] = useState([]);
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
+  const [showPaywall, setShowPaywall] = useState(false); // Controls Token Purchase Modal
 
   // Leaderboard & Profile States
   const [leaderboard, setLeaderboard] = useState([]);
@@ -111,13 +110,19 @@ function MainApp({ session, triggerAuth }) {
 
   const messagesEndRef = useRef(null);
 
-  // NEW: Tab Navigation Protection
+  // Tab Navigation Protection
   const handleTabChange = (tabName) => {
     if (!session && tabName !== 'home') {
-      triggerAuth(); // Block guests from accessing Vault/Tests
+      triggerAuth(); 
       return;
     }
     setActiveTab(tabName);
+  };
+
+  // Payment Logic Stub
+  const handlePayment = async (amountInINR, tokensToAdd) => {
+    alert(`Initiating Razorpay for ₹${amountInINR} to buy ${tokensToAdd} tokens!`);
+    // We will wire this to your backend next
   };
 
   // --- XP & STREAK LOGIC ---
@@ -226,11 +231,18 @@ function MainApp({ session, triggerAuth }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, userStorageKey]);
 
+  useEffect(() => {
+    // Load Razorpay Script dynamically
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    document.body.appendChild(script);
+  }, []);
+
   // --- CORE FEATURES ---
   const handleAsk = async () => {
     if (!query.trim() || loading) return;
 
-    // NEW: Enforce Guest Limit (2 messages)
     if (!session && guestMessageCount >= 2) {
       triggerAuth();
       return;
@@ -243,7 +255,6 @@ function MainApp({ session, triggerAuth }) {
     const newMessages = [...messages, { role: "user", text: userQuery }];
     setMessages(newMessages);
 
-    // Update guest counter
     if (!session) {
       const newCount = guestMessageCount + 1;
       setGuestMessageCount(newCount);
@@ -292,14 +303,12 @@ function MainApp({ session, triggerAuth }) {
                }
           }
         } else {
-          // Guest mode: Don't save to DB, just show the message
           setMessages(prev => [...prev, { role: "bot", text: visibleText }]);
         }
       } else {
         setMessages(prev => [...prev, { role: "bot", text: aiText }]);
       }
 
-      // NEW: Hook the guest after their 2nd message
       if (!session && guestMessageCount + 1 === 2) {
         setTimeout(() => {
           setMessages(prev => [...prev, { role: "bot", text: "🎉 Great question! You've unlocked 5 XP. Sign in to save this to your Mastery Vault and continue chatting." }]);
@@ -315,8 +324,20 @@ function MainApp({ session, triggerAuth }) {
 
   const startTest = async () => {
     if (vault.length === 0) return alert("Vault is empty. Study first!");
+    
+    // Check tokens before generating
+    if (userProfile?.tokens <= 0) {
+      setShowPaywall(true); 
+      return;
+    }
+
     setTestState("loading");
     
+    // Deduct 1 Token immediately
+    const newTokens = userProfile.tokens - 1;
+    await supabase.from('profiles').update({ tokens: newTokens }).eq('id', session.user.id);
+    setUserProfile(prev => ({ ...prev, tokens: newTokens }));
+
     const topics = vault.map(v => v.title).join(", ");
     try {
       const res = await fetch(`${BACKEND_URL}/ask`, {
@@ -329,12 +350,11 @@ function MainApp({ session, triggerAuth }) {
       setQuiz(JSON.parse(jsonStr).slice(0, 10));
       setScore(0); setCurrentQIndex(0); setTestState("active");
     } catch (e) {
-      setTestState("idle"); alert("Error generating test.");
+      // Refund token if AI fails
+      await supabase.from('profiles').update({ tokens: userProfile.tokens }).eq('id', session.user.id);
+      setUserProfile(prev => ({ ...prev, tokens: userProfile.tokens }));
+      setTestState("idle"); alert("Error generating test. Token refunded.");
     }
-  };
-
-  const submitAnswer = (option) => {
-     // Handled by UI "Next" button logic now
   };
 
   const finishTest = async () => {
@@ -370,6 +390,9 @@ function MainApp({ session, triggerAuth }) {
     fetchData();
   };
 
+  const avgScore = examResults.length > 0 
+    ? Math.round(examResults.reduce((acc, curr) => acc + (curr.score / curr.total_questions) * 100, 0) / examResults.length) : 0;
+
   // --- UI RENDER ---
   return (
     <div className="h-[100dvh] w-full bg-gradient-to-br from-[#0F2027] via-[#203A43] to-[#CBDDE9] text-white font-sans overflow-hidden flex flex-col">
@@ -381,9 +404,14 @@ function MainApp({ session, triggerAuth }) {
            <h1 className="font-serif font-bold text-lg tracking-wider text-white drop-shadow-md">POLICYPATH</h1>
         </div>
         <div className="flex items-center gap-3">
+           {session && userProfile && (
+             <div onClick={() => setShowPaywall(true)} className="flex items-center gap-1 cursor-pointer bg-amber-500/20 text-amber-300 px-3 py-1 rounded-full border border-amber-500/30 backdrop-blur-md hover:bg-amber-500/30 transition">
+               <span className="text-sm">🪙</span>
+               <span className="text-[12px] font-bold">{userProfile.tokens ?? 0}</span>
+             </div>
+           )}
            <div className="text-[10px] font-bold bg-[#2872A1]/20 text-blue-200 px-2 py-1 rounded border border-[#2872A1]/30 backdrop-blur-md">BETA 2.0</div>
            
-           {/* NEW: Dynamic Header Auth Button */}
            {session ? (
              <button onClick={() => supabase.auth.signOut()} className="text-[10px] font-bold text-red-200/70 hover:text-red-200 transition">EXIT</button>
            ) : (
@@ -426,8 +454,8 @@ function MainApp({ session, triggerAuth }) {
             <div ref={messagesEndRef} className="h-4" />
           </div>
         )}
-        
-        {/* TAB 2: VAULT (Physics Edition) */}
+
+                {/* TAB 2: VAULT */}
         {activeTab === 'vault' && (
           <div className="p-6 max-w-4xl mx-auto space-y-6">
             <motion.div 
@@ -487,14 +515,14 @@ function MainApp({ session, triggerAuth }) {
           </div>
         )}
 
-        {/* TAB 3: TEST PORTAL (Improved UI) */}
+        {/* TAB 3: TEST PORTAL */}
         {activeTab === 'test' && (
           <div className="h-full flex flex-col items-center justify-center animate-fade-in p-4">
             {testState === 'idle' && (
               <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-10 rounded-[2rem] text-center space-y-6 max-w-sm shadow-2xl">
                 <div className="text-6xl mb-4 drop-shadow-lg">🎯</div>
                 <h2 className="text-2xl font-serif font-bold">Ready to Prove It?</h2>
-                <p className="text-sm text-blue-100/70">Generate a quiz based on your Vault.</p>
+                <p className="text-sm text-blue-100/70">Costs 1 Token to generate.</p>
                 <button onClick={startTest} className="w-full bg-white text-[#0F2027] font-bold py-4 rounded-xl shadow-lg hover:bg-blue-50 hover:scale-105 transition-all">GENERATE TEST</button>
               </div>
             )}
@@ -508,12 +536,10 @@ function MainApp({ session, triggerAuth }) {
                   <span>Score: {score}</span>
                 </div>
                 
-                {/* Question Card */}
                 <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-8 rounded-3xl mb-6 relative shadow-xl min-h-[150px] flex items-center">
                   <p className="font-medium text-lg leading-relaxed">{quiz[currentQIndex].question}</p>
                 </div>
 
-                {/* Options */}
                 <div className="space-y-3">
                   {quiz[currentQIndex].options.map((opt, i) => (
                     <button 
@@ -531,12 +557,11 @@ function MainApp({ session, triggerAuth }) {
                   ))}
                 </div>
 
-                {/* Next Button */}
                 <button 
                   disabled={!selectedOption}
                   onClick={() => {
                     if (selectedOption === quiz[currentQIndex].answer) setScore(s => s + 1);
-                    setSelectedOption(null); // Reset selection
+                    setSelectedOption(null); 
                     if (currentQIndex + 1 < quiz.length) setCurrentQIndex(i => i + 1);
                     else finishTest();
                   }}
@@ -562,7 +587,7 @@ function MainApp({ session, triggerAuth }) {
           </div>
         )}
 
-        {/* TAB 4: ANALYTICS (With SWOT) */}
+        {/* TAB 4: ANALYTICS */}
         {activeTab === 'analytics' && (
           <div className="space-y-6 animate-fade-in max-w-lg mx-auto p-4">
             <h2 className="text-2xl font-serif font-bold px-2 drop-shadow-md">Performance</h2>
@@ -578,7 +603,6 @@ function MainApp({ session, triggerAuth }) {
               </div>
             </div>
 
-            {/* Recent Activity List */}
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-3xl shadow-xl">
                <h3 className="text-xs font-bold uppercase tracking-widest mb-6 opacity-70">Recent Tests (Click for SWOT)</h3>
                <div className="space-y-4">
@@ -599,7 +623,6 @@ function MainApp({ session, triggerAuth }) {
                </div>
             </div>
 
-            {/* SWOT MODAL */}
             {viewingSwot && (
               <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
                  <div className="bg-[#1a2c38] w-full max-w-sm rounded-3xl p-8 border border-white/10 shadow-2xl relative">
@@ -650,12 +673,11 @@ function MainApp({ session, triggerAuth }) {
           </div>
         )}
 
-        {/* TAB 6: PROFILE (With Mandatory Setup) */}
+        {/* TAB 6: PROFILE */}
         {activeTab === 'profile' && (
           <div className="p-6 max-w-lg mx-auto animate-fade-in">
             <h2 className="text-3xl font-serif font-bold text-white mb-6 drop-shadow-lg text-center">Student ID 🪪</h2>
             
-            {/* ID CARD DISPLAY */}
             <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 shadow-2xl relative overflow-hidden mb-8">
                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
                
@@ -691,7 +713,6 @@ function MainApp({ session, triggerAuth }) {
                </button>
             </div>
 
-            {/* EDIT MODAL OVERLAY */}
             {editingProfile && (
               <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
                 <div className="bg-[#1a2c38] w-full max-w-md rounded-3xl p-6 border border-white/10 shadow-2xl">
@@ -723,7 +744,6 @@ function MainApp({ session, triggerAuth }) {
                     />
                   </div>
                   <div className="flex gap-3 mt-6">
-                    {/* 👇 Hide Cancel if new user */}
                     {!isNewUser && (
                       <button onClick={() => setEditingProfile(false)} className="flex-1 py-3 rounded-xl text-white/50 hover:bg-white/5">Cancel</button>
                     )}
@@ -739,7 +759,7 @@ function MainApp({ session, triggerAuth }) {
 
       </main>
 
-      {/* 3. INPUT AREA (Home only) */}
+      {/* 3. INPUT AREA */}
       {activeTab === 'home' && (
         <div className="fixed bottom-24 w-full px-4 max-w-2xl mx-auto left-0 right-0 z-40">
            <div className="bg-[#0F2027]/60 backdrop-blur-2xl border border-white/20 p-2 rounded-full flex items-center shadow-2xl ring-1 ring-white/10">
@@ -777,7 +797,7 @@ function MainApp({ session, triggerAuth }) {
             ].map(tab => (
               <button 
                 key={tab.id} 
-                onClick={() => setActiveTab(tab.id)} 
+                onClick={() => handleTabChange(tab.id)} // CHANGED to handleTabChange
                 className={`p-2 transition-all duration-300 rounded-full relative ${
                   activeTab === tab.id ? 'text-white scale-125 drop-shadow-glow' : 'text-white/40 hover:text-white hover:scale-110'
                 }`}
@@ -807,6 +827,60 @@ function MainApp({ session, triggerAuth }) {
         </div>
       )}
 
+      {/* 6. PAYWALL MODAL */}
+      <AnimatePresence>
+        {showPaywall && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md px-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
+              className="bg-gradient-to-br from-[#0F2027] via-[#154360] to-[#203A43] border border-amber-500/30 shadow-2xl shadow-amber-500/10 w-full max-w-sm p-8 rounded-3xl relative"
+            >
+              <button 
+                onClick={() => setShowPaywall(false)}
+                className="absolute top-4 right-6 text-white/50 hover:text-white text-xl font-bold"
+              >
+                ✕
+              </button>
+              
+              <div className="text-center mb-6">
+                <div className="text-5xl mb-2 drop-shadow-lg">🪙</div>
+                <h2 className="text-2xl font-serif font-bold text-white mb-1">Out of Tokens</h2>
+                <p className="text-blue-200 text-xs font-light">You need tokens to generate deep-analysis Constitution tests.</p>
+              </div>
+
+              <div className="space-y-4">
+                <button 
+                  onClick={() => handlePayment(49, 10)}
+                  className="w-full relative overflow-hidden group bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-2xl flex justify-between items-center transition-all"
+                >
+                  <div className="text-left">
+                    <h3 className="text-white font-bold text-lg group-hover:text-amber-300 transition-colors">Starter Pack</h3>
+                    <p className="text-white/50 text-xs">+10 Tokens</p>
+                  </div>
+                  <div className="bg-white/10 px-4 py-2 rounded-xl text-white font-bold">₹49</div>
+                </button>
+
+                <button 
+                  onClick={() => handlePayment(149, 50)}
+                  className="w-full relative overflow-hidden group bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/50 p-4 rounded-2xl flex justify-between items-center transition-all"
+                >
+                  <div className="absolute top-0 right-0 bg-amber-500 text-[#0F2027] text-[9px] font-bold px-2 py-1 rounded-bl-lg">POPULAR</div>
+                  <div className="text-left">
+                    <h3 className="text-amber-400 font-bold text-lg">Scholar Pack</h3>
+                    <p className="text-amber-400/70 text-xs">+50 Tokens</p>
+                  </div>
+                  <div className="bg-amber-500 text-[#0F2027] px-4 py-2 rounded-xl font-bold">₹149</div>
+                </button>
+              </div>
+              <p className="text-center text-white/30 text-[10px] mt-6">Secured by Razorpay</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
-            }
+              }
