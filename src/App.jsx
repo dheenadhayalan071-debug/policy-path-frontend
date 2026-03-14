@@ -4,13 +4,13 @@ import { supabase } from './supabaseClient';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { motion, AnimatePresence } from 'framer-motion';
-import Spline from '@splinetool/react-spline';
 
 const BACKEND_URL = "https://policy-path-ai-backend.onrender.com"; 
 
-// --- 1. THE VELVET ROPE (Auth Modal & Wrapper) ---
+// --- 1. THE FRONT DOOR (Landing Page + Auth Modal Wrapper) ---
 export default function App() {
   const [session, setSession] = useState(null);
+  const [isGuestMode, setIsGuestMode] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
@@ -21,25 +21,61 @@ export default function App() {
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if(session) setShowAuthModal(false); // Close modal automatically on login
+      if(session) {
+        setShowAuthModal(false); 
+        setIsGuestMode(false);
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
 
-  // Show nothing while checking for session to prevent flashing
   if (isInitialLoad) return <div className="h-screen w-screen bg-[#0F2027]"></div>;
+
+  // EXPLICIT LANDING PAGE
+  if (!session && !isGuestMode) {
+    return (
+      <div className="h-[100dvh] w-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#0F2027] via-[#203A43] to-[#2872A1] animate-gradient-slow overflow-hidden px-4">
+        <div className="backdrop-blur-2xl bg-white/10 border border-white/20 shadow-2xl w-full max-w-md p-10 rounded-3xl animate-fade-in relative z-10">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-serif text-white mb-2 tracking-widest drop-shadow-lg">POLICYPATH AI 🏛️</h1>
+            <p className="text-blue-200 font-light text-sm tracking-wide">Your Personal Constitution Mentor</p>
+          </div>
+          
+          <Auth 
+            supabaseClient={supabase} 
+            appearance={{ 
+              theme: ThemeSupa, 
+              variables: { default: { colors: { brand: '#2872A1', brandAccent: '#154360', inputText: 'white' } } } 
+            }}
+            theme="dark" providers={['google']} 
+          />
+
+          <div className="mt-6 flex flex-col items-center gap-4">
+            <div className="text-white/30 text-xs font-bold uppercase tracking-widest">— OR —</div>
+            <button 
+              onClick={() => setIsGuestMode(true)}
+              className="w-full bg-white/5 hover:bg-white/10 border border-white/20 text-white font-bold py-3 rounded-xl transition-all shadow-lg"
+            >
+              Continue as Guest
+            </button>
+            <p className="text-[10px] text-white/50 text-center mt-2">Guests can chat, but need an account to save to the Vault.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
-      {/* Main app is ALWAYS rendered, even for guests */}
+      {/* Main app is ALWAYS rendered once past the front door */}
       <MainApp session={session} triggerAuth={() => setShowAuthModal(true)} />
 
-      {/* Auth Modal overlay triggers when guest limit hit or protected tab clicked */}
+      {/* Auth Modal overlay triggers when protected tab clicked mid-app */}
       <AnimatePresence>
         {showAuthModal && !session && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md px-4"
           >
             <motion.div 
               initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
@@ -53,14 +89,11 @@ export default function App() {
               </button>
               <div className="text-center mb-8">
                 <h1 className="text-3xl font-serif text-white mb-2 tracking-widest drop-shadow-lg">Unlock PolicyPath</h1>
-                <p className="text-blue-200 font-light text-sm tracking-wide">Save your progress, access the Vault, and keep learning.</p>
+                <p className="text-blue-200 font-light text-sm tracking-wide">Save your progress, take tests, and view analytics.</p>
               </div>
               <Auth 
                 supabaseClient={supabase} 
-                appearance={{ 
-                  theme: ThemeSupa, 
-                  variables: { default: { colors: { brand: '#2872A1', brandAccent: '#154360', inputText: 'white' } } } 
-                }}
+                appearance={{ theme: ThemeSupa, variables: { default: { colors: { brand: '#2872A1', brandAccent: '#154360', inputText: 'white' } } } }}
                 theme="dark" providers={['google']} 
               />
             </motion.div>
@@ -70,6 +103,7 @@ export default function App() {
     </>
   );
 }
+
 
 // --- 2. MAIN APP ---
 function MainApp({ session, triggerAuth }) {
@@ -81,10 +115,6 @@ function MainApp({ session, triggerAuth }) {
     return saved ? JSON.parse(saved) : [{ role: "bot", text: "Welcome. I am ready to guide you through the Constitution. Ask me anything to start.", type: "mentor" }];
   });
   
-  const [guestMessageCount, setGuestMessageCount] = useState(() => {
-    return parseInt(localStorage.getItem('pp_guest_count') || '0', 10);
-  });
-
   const [vault, setVault] = useState([]);
   const [examResults, setExamResults] = useState([]);
   const [query, setQuery] = useState("");
@@ -92,15 +122,14 @@ function MainApp({ session, triggerAuth }) {
   const [activeTab, setActiveTab] = useState('home');
   const [selectedArticle, setSelectedArticle] = useState(null);
   
-  // Quiz & Token States
+  // Quiz States
   const [testState, setTestState] = useState("idle"); 
   const [quiz, setQuiz] = useState([]);
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
-  const [showPaywall, setShowPaywall] = useState(false); // Controls Token Purchase Modal
 
-  // Leaderboard & Profile States
+  // Profile & Leaderboard
   const [leaderboard, setLeaderboard] = useState([]);
   const [userProfile, setUserProfile] = useState(null);
   const [editingProfile, setEditingProfile] = useState(false);
@@ -108,21 +137,19 @@ function MainApp({ session, triggerAuth }) {
   const [isNewUser, setIsNewUser] = useState(false); 
   const [viewingSwot, setViewingSwot] = useState(null);
 
+  // Sidebar State
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   const messagesEndRef = useRef(null);
 
   // Tab Navigation Protection
   const handleTabChange = (tabName) => {
+    setIsSidebarOpen(false); // Always close sidebar on navigation
     if (!session && tabName !== 'home') {
       triggerAuth(); 
       return;
     }
     setActiveTab(tabName);
-  };
-
-  // Payment Logic Stub
-  const handlePayment = async (amountInINR, tokensToAdd) => {
-    alert(`Initiating Razorpay for ₹${amountInINR} to buy ${tokensToAdd} tokens!`);
-    // We will wire this to your backend next
   };
 
   // --- XP & STREAK LOGIC ---
@@ -142,8 +169,7 @@ function MainApp({ session, triggerAuth }) {
     let newStreak = profile.streak;
     let xpToAdd = amount;
 
-    if (type === 'login') {
-        if (isSameDay) return; 
+    if (type === 'login' && !isSameDay) {
         xpToAdd = 10; 
     }
 
@@ -193,11 +219,6 @@ function MainApp({ session, triggerAuth }) {
 
       const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
       
-      if (error) {
-        console.error("Profile Fetch Error:", error.message);
-        return; 
-      }
-
       if (profile) {
          setUserProfile(profile);
          setFormData(prev => ({ 
@@ -223,7 +244,7 @@ function MainApp({ session, triggerAuth }) {
   useEffect(() => { 
     fetchData(); 
     fetchLeaderboard(); 
-    updateXP(0, 'login'); 
+    if (session) updateXP(0, 'login'); 
   }, [session]);
 
   useEffect(() => {
@@ -231,22 +252,9 @@ function MainApp({ session, triggerAuth }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, userStorageKey]);
 
-  useEffect(() => {
-    // Load Razorpay Script dynamically
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    document.body.appendChild(script);
-  }, []);
-
   // --- CORE FEATURES ---
   const handleAsk = async () => {
     if (!query.trim() || loading) return;
-
-    if (!session && guestMessageCount >= 2) {
-      triggerAuth();
-      return;
-    }
 
     const userQuery = query.trim();
     setLoading(true);
@@ -254,12 +262,6 @@ function MainApp({ session, triggerAuth }) {
     
     const newMessages = [...messages, { role: "user", text: userQuery }];
     setMessages(newMessages);
-
-    if (!session) {
-      const newCount = guestMessageCount + 1;
-      setGuestMessageCount(newCount);
-      localStorage.setItem('pp_guest_count', newCount.toString());
-    }
 
     const historyContext = messages.slice(-3).map(m => `${m.role.toUpperCase()}: ${m.text}`).join("\n");
 
@@ -303,16 +305,11 @@ function MainApp({ session, triggerAuth }) {
                }
           }
         } else {
-          setMessages(prev => [...prev, { role: "bot", text: visibleText }]);
+          // Guest mode: Give them the text, but remind them to login to save
+          setMessages(prev => [...prev, { role: "bot", text: `${visibleText}\n\n*(Login to save this to your Vault!)*` }]);
         }
       } else {
         setMessages(prev => [...prev, { role: "bot", text: aiText }]);
-      }
-
-      if (!session && guestMessageCount + 1 === 2) {
-        setTimeout(() => {
-          setMessages(prev => [...prev, { role: "bot", text: "🎉 Great question! You've unlocked 5 XP. Sign in to save this to your Mastery Vault and continue chatting." }]);
-        }, 1000);
       }
 
     } catch (e) {
@@ -324,20 +321,8 @@ function MainApp({ session, triggerAuth }) {
 
   const startTest = async () => {
     if (vault.length === 0) return alert("Vault is empty. Study first!");
-    
-    // Check tokens before generating
-    if (userProfile?.tokens <= 0) {
-      setShowPaywall(true); 
-      return;
-    }
-
     setTestState("loading");
     
-    // Deduct 1 Token immediately
-    const newTokens = userProfile.tokens - 1;
-    await supabase.from('profiles').update({ tokens: newTokens }).eq('id', session.user.id);
-    setUserProfile(prev => ({ ...prev, tokens: newTokens }));
-
     const topics = vault.map(v => v.title).join(", ");
     try {
       const res = await fetch(`${BACKEND_URL}/ask`, {
@@ -350,10 +335,7 @@ function MainApp({ session, triggerAuth }) {
       setQuiz(JSON.parse(jsonStr).slice(0, 10));
       setScore(0); setCurrentQIndex(0); setTestState("active");
     } catch (e) {
-      // Refund token if AI fails
-      await supabase.from('profiles').update({ tokens: userProfile.tokens }).eq('id', session.user.id);
-      setUserProfile(prev => ({ ...prev, tokens: userProfile.tokens }));
-      setTestState("idle"); alert("Error generating test. Token refunded.");
+      setTestState("idle"); alert("Error generating test.");
     }
   };
 
@@ -379,11 +361,7 @@ function MainApp({ session, triggerAuth }) {
     }
     
     await supabase.from('exam_results').insert([{
-      score: score, 
-      total_questions: quiz.length, 
-      topics_covered: "Mixed Vault Test", 
-      user_id: session.user.id,
-      swot_analysis: aiSwot 
+      score: score, total_questions: quiz.length, topics_covered: "Mixed Vault Test", user_id: session.user.id, swot_analysis: aiSwot 
     }]);
     
     if (earnedXP > 0) updateXP(earnedXP, 'quiz');
@@ -395,30 +373,89 @@ function MainApp({ session, triggerAuth }) {
 
   // --- UI RENDER ---
   return (
-    <div className="h-[100dvh] w-full bg-gradient-to-br from-[#0F2027] via-[#203A43] to-[#CBDDE9] text-white font-sans overflow-hidden flex flex-col">
+    <div className="h-[100dvh] w-full bg-gradient-to-br from-[#0F2027] via-[#203A43] to-[#CBDDE9] text-white font-sans overflow-hidden flex flex-col relative">
       
-      {/* HEADER */}
-      <header className="px-6 py-4 flex justify-between items-center z-50 bg-[#0F2027]/30 backdrop-blur-xl border-b border-white/10 shadow-lg">
-        <div className="flex items-center gap-2">
-           <span className="text-2xl drop-shadow-md">🏛️</span>
+      {/* HEADER (Now with Hamburger Menu) */}
+      <header className="px-6 py-4 flex justify-between items-center z-40 bg-[#0F2027]/30 backdrop-blur-xl border-b border-white/10 shadow-lg">
+        <div className="flex items-center gap-4">
+           {/* Hamburger Button */}
+           <button onClick={() => setIsSidebarOpen(true)} className="text-white hover:text-blue-300 transition p-1">
+             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+           </button>
            <h1 className="font-serif font-bold text-lg tracking-wider text-white drop-shadow-md">POLICYPATH</h1>
         </div>
         <div className="flex items-center gap-3">
-           {session && userProfile && (
-             <div onClick={() => setShowPaywall(true)} className="flex items-center gap-1 cursor-pointer bg-amber-500/20 text-amber-300 px-3 py-1 rounded-full border border-amber-500/30 backdrop-blur-md hover:bg-amber-500/30 transition">
-               <span className="text-sm">🪙</span>
-               <span className="text-[12px] font-bold">{userProfile.tokens ?? 0}</span>
-             </div>
-           )}
            <div className="text-[10px] font-bold bg-[#2872A1]/20 text-blue-200 px-2 py-1 rounded border border-[#2872A1]/30 backdrop-blur-md">BETA 2.0</div>
-           
-           {session ? (
-             <button onClick={() => supabase.auth.signOut()} className="text-[10px] font-bold text-red-200/70 hover:text-red-200 transition">EXIT</button>
-           ) : (
-             <button onClick={triggerAuth} className="text-[10px] font-bold text-green-200/70 hover:text-green-200 transition">SIGN IN</button>
-           )}
         </div>
       </header>
+
+      {/* SIDEBAR OVERLAY */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsSidebarOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            />
+            {/* Sidebar Panel */}
+            <motion.div 
+              initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed top-0 left-0 bottom-0 w-3/4 max-w-sm bg-[#0F2027]/95 backdrop-blur-2xl border-r border-white/10 z-50 flex flex-col p-6 shadow-2xl"
+            >
+              <button onClick={() => setIsSidebarOpen(false)} className="absolute top-6 right-6 text-white/50 hover:text-white text-xl">✕</button>
+              
+              {/* Sidebar Header / Profile Preview */}
+              <div className="mb-10 mt-4">
+                {session ? (
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-[#2872A1] to-purple-600 rounded-full flex items-center justify-center text-xl shadow-lg border border-white/20">🎓</div>
+                    <div>
+                      <h3 className="text-white font-bold">{userProfile?.full_name || 'Scholar'}</h3>
+                      <p className="text-xs text-blue-300">{userProfile?.xp || 0} XP • {userProfile?.streak || 0} Day Streak</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-xl shadow-lg border border-white/5">👤</div>
+                    <div>
+                      <h3 className="text-white/80 font-bold">Guest User</h3>
+                      <button onClick={triggerAuth} className="text-xs text-[#2872A1] font-bold hover:underline">Sign in to save progress</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Sidebar Navigation */}
+              <div className="flex flex-col gap-2 flex-1">
+                <button onClick={() => handleTabChange('leaderboard')} className="flex items-center gap-4 text-left p-4 rounded-2xl hover:bg-white/5 transition group">
+                  <span className="text-xl group-hover:scale-110 transition">👑</span>
+                  <span className="font-bold tracking-wide">Hall of Fame</span>
+                </button>
+                <button onClick={() => handleTabChange('profile')} className="flex items-center gap-4 text-left p-4 rounded-2xl hover:bg-white/5 transition group">
+                  <span className="text-xl group-hover:scale-110 transition">🪪</span>
+                  <span className="font-bold tracking-wide">Student ID</span>
+                </button>
+              </div>
+
+                            {/* Sidebar Footer */}
+              <div className="pt-6 border-t border-white/10 mt-auto">
+                {session ? (
+                  <button onClick={() => { supabase.auth.signOut(); setIsSidebarOpen(false); }} className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-red-500/10 text-red-400 font-bold hover:bg-red-500/20 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    Sign Out
+                  </button>
+                ) : (
+                  <button onClick={triggerAuth} className="w-full bg-[#2872A1] hover:bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg transition">
+                    Sign In / Register
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 overflow-y-auto pb-32 scroll-smooth">
@@ -434,7 +471,6 @@ function MainApp({ session, triggerAuth }) {
                     : 'bg-white/10 text-blue-50 rounded-bl-none shadow-black/20'
                 }`}>
                   <div className="whitespace-pre-wrap font-light tracking-wide">{m.text}</div>
-                  
                   {m.saved && (
                     <div className="mt-3 pt-2 border-t border-white/20 flex items-center gap-2 text-green-300 text-[10px] font-bold uppercase tracking-widest">
                       <span className="bg-green-500/20 p-1 rounded-full">✓</span> Saved to Vault
@@ -454,16 +490,11 @@ function MainApp({ session, triggerAuth }) {
             <div ref={messagesEndRef} className="h-4" />
           </div>
         )}
-
-                {/* TAB 2: VAULT */}
+        
+        {/* TAB 2: VAULT */}
         {activeTab === 'vault' && (
           <div className="p-6 max-w-4xl mx-auto space-y-6">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="mb-6"
-            >
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
               <h2 className="text-3xl font-serif font-bold text-white mb-2 drop-shadow-lg">Mastery Vault 🏆</h2>
               <p className="text-blue-200/70 text-sm">Your knowledge portfolio.</p>
             </motion.div>
@@ -475,39 +506,20 @@ function MainApp({ session, triggerAuth }) {
                 <button onClick={() => setActiveTab('home')} className="mt-4 text-[#2872A1] font-bold text-sm underline hover:text-blue-300 transition">Start Learning</button>
               </div>
             ) : (
-              <motion.div 
-                className="flex gap-6 overflow-x-auto hide-scrollbar pb-12 px-2 snap-x"
-                initial="hidden"
-                animate="visible"
-                variants={{
-                  visible: { transition: { staggerChildren: 0.1 } } 
-                }}
-              >
+              <motion.div className="flex gap-6 overflow-x-auto hide-scrollbar pb-12 px-2 snap-x" initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }}>
                 {vault.map((v, i) => (
                   <motion.div 
-                    key={v.id} 
-                    onClick={() => setSelectedArticle(v)} 
-                    variants={{
-                      hidden: { opacity: 0, x: 50, scale: 0.9 },
-                      visible: { opacity: 1, x: 0, scale: 1, transition: { type: "spring", stiffness: 100 } }
-                    }}
-                    whileHover={{ scale: 1.05, rotateZ: 1, transition: { type: "spring", stiffness: 300 } }}
-                    whileTap={{ scale: 0.95 }}
+                    key={v.id} onClick={() => setSelectedArticle(v)} 
+                    variants={{ hidden: { opacity: 0, x: 50, scale: 0.9 }, visible: { opacity: 1, x: 0, scale: 1, transition: { type: "spring", stiffness: 100 } } }}
+                    whileHover={{ scale: 1.05, rotateZ: 1 }} whileTap={{ scale: 0.95 }}
                     className="bg-white/5 backdrop-blur-xl min-w-[280px] w-[280px] h-[380px] p-6 rounded-3xl flex flex-col justify-between snap-center cursor-pointer border border-white/10 shadow-2xl relative overflow-hidden group"
                   >
-                    <div className={`absolute inset-0 opacity-20 bg-gradient-to-br ${
-                      i % 3 === 0 ? 'from-blue-500 to-purple-600' : 
-                      i % 3 === 1 ? 'from-emerald-500 to-teal-600' : 
-                      'from-orange-500 to-red-600'
-                    } group-hover:opacity-40 transition-opacity duration-500`}></div>
+                    <div className={`absolute inset-0 opacity-20 bg-gradient-to-br ${i % 3 === 0 ? 'from-blue-500 to-purple-600' : i % 3 === 1 ? 'from-emerald-500 to-teal-600' : 'from-orange-500 to-red-600'} group-hover:opacity-40 transition-opacity duration-500`}></div>
                     <div className="relative z-10">
                       <span className="text-[10px] bg-white/10 px-2 py-1 rounded-full uppercase tracking-widest text-white/80 border border-white/5 shadow-sm">Mastered</span>
                       <h3 className="text-2xl font-serif font-bold mt-4 mb-2 leading-tight drop-shadow-md text-white">{v.title}</h3>
                       <p className="text-xs text-blue-50/70 line-clamp-4 leading-relaxed font-light">{v.notes}</p>
                     </div>
-                    <motion.button className="relative z-10 text-xs font-bold uppercase tracking-widest text-left text-white/50 group-hover:text-white transition-colors flex items-center gap-2">
-                      Open Card <span className="text-lg">→</span>
-                    </motion.button>
                   </motion.div>
                 ))}
               </motion.div>
@@ -522,7 +534,7 @@ function MainApp({ session, triggerAuth }) {
               <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-10 rounded-[2rem] text-center space-y-6 max-w-sm shadow-2xl">
                 <div className="text-6xl mb-4 drop-shadow-lg">🎯</div>
                 <h2 className="text-2xl font-serif font-bold">Ready to Prove It?</h2>
-                <p className="text-sm text-blue-100/70">Costs 1 Token to generate.</p>
+                <p className="text-sm text-blue-100/70">Generate a quiz based on your Vault.</p>
                 <button onClick={startTest} className="w-full bg-white text-[#0F2027] font-bold py-4 rounded-xl shadow-lg hover:bg-blue-50 hover:scale-105 transition-all">GENERATE TEST</button>
               </div>
             )}
@@ -543,16 +555,10 @@ function MainApp({ session, triggerAuth }) {
                 <div className="space-y-3">
                   {quiz[currentQIndex].options.map((opt, i) => (
                     <button 
-                      key={i} 
-                      onClick={() => setSelectedOption(opt)} 
-                      className={`w-full p-4 text-left border rounded-xl transition-all duration-200 backdrop-blur-md flex justify-between items-center ${
-                        selectedOption === opt 
-                        ? 'bg-[#2872A1] border-[#2872A1] text-white shadow-lg scale-105' 
-                        : 'bg-white/5 border-white/10 hover:bg-white/10'
-                      }`}
+                      key={i} onClick={() => setSelectedOption(opt)} 
+                      className={`w-full p-4 text-left border rounded-xl transition-all duration-200 backdrop-blur-md flex justify-between items-center ${selectedOption === opt ? 'bg-[#2872A1] border-[#2872A1] text-white shadow-lg scale-105' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
                     >
-                      {opt}
-                      {selectedOption === opt && <span>●</span>}
+                      {opt} {selectedOption === opt && <span>●</span>}
                     </button>
                   ))}
                 </div>
@@ -562,14 +568,9 @@ function MainApp({ session, triggerAuth }) {
                   onClick={() => {
                     if (selectedOption === quiz[currentQIndex].answer) setScore(s => s + 1);
                     setSelectedOption(null); 
-                    if (currentQIndex + 1 < quiz.length) setCurrentQIndex(i => i + 1);
-                    else finishTest();
+                    if (currentQIndex + 1 < quiz.length) setCurrentQIndex(i => i + 1); else finishTest();
                   }}
-                  className={`mt-8 w-full py-4 rounded-xl font-bold uppercase tracking-widest transition-all ${
-                    selectedOption 
-                    ? 'bg-white text-[#0F2027] shadow-xl hover:scale-105' 
-                    : 'bg-white/5 text-white/20 cursor-not-allowed'
-                  }`}
+                  className={`mt-8 w-full py-4 rounded-xl font-bold uppercase tracking-widest transition-all ${selectedOption ? 'bg-white text-[#0F2027] shadow-xl hover:scale-105' : 'bg-white/5 text-white/20 cursor-not-allowed'}`}
                 >
                   {currentQIndex + 1 === quiz.length ? "Finish Test" : "Next Question →"}
                 </button>
@@ -613,9 +614,7 @@ function MainApp({ session, triggerAuth }) {
                       <div className="text-blue-100/90 font-medium">{res.topics_covered || "General Test"}</div>
                       <div className="text-[10px] opacity-50">{new Date(res.created_at).toLocaleDateString()}</div>
                    </div>
-                   <span className={`font-bold px-3 py-1 rounded text-xs border ${
-                     res.score >= 5 ? 'bg-green-500/20 border-green-500/30 text-green-200' : 'bg-red-500/20 border-red-500/30 text-red-200'
-                   }`}>
+                   <span className={`font-bold px-3 py-1 rounded text-xs border ${res.score >= 5 ? 'bg-green-500/20 border-green-500/30 text-green-200' : 'bg-red-500/20 border-red-500/30 text-red-200'}`}>
                      {res.score}/{res.total_questions}
                    </span>
                  </div>
@@ -629,7 +628,6 @@ function MainApp({ session, triggerAuth }) {
                     <button onClick={() => setViewingSwot(null)} className="absolute top-4 right-4 text-white/50 hover:text-white">✕</button>
                     <h3 className="text-2xl font-serif font-bold mb-2">AI Analysis 🧠</h3>
                     <div className="text-sm text-blue-400 mb-6 uppercase tracking-widest font-bold">Based on Score: {viewingSwot.score}/{viewingSwot.total_questions}</div>
-                    
                     <div className="bg-black/30 p-4 rounded-xl text-sm leading-relaxed text-blue-100/90 border border-white/5 whitespace-pre-wrap">
                       {viewingSwot.swot_analysis || "Analysis not available for this old test."}
                     </div>
@@ -639,31 +637,23 @@ function MainApp({ session, triggerAuth }) {
           </div>
         )}
 
-        {/* TAB 5: LEADERBOARD */}
+        {/* TAB 5: LEADERBOARD (Accessible via Sidebar now) */}
         {activeTab === 'leaderboard' && (
           <div className="p-6 max-w-lg mx-auto space-y-6 animate-fade-in">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-serif font-bold text-white drop-shadow-lg">Hall of Fame 👑</h2>
               <p className="text-blue-200/70 text-sm">Top Scholars Globally</p>
             </div>
-
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
               {leaderboard.map((user, index) => (
                 <div key={index} className={`flex items-center justify-between p-4 border-b border-white/5 last:border-0 ${index === 0 ? 'bg-yellow-500/10' : ''}`}>
                   <div className="flex items-center gap-4">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                      index === 0 ? 'bg-yellow-400 text-black' : 
-                      index === 1 ? 'bg-gray-300 text-black' : 
-                      index === 2 ? 'bg-orange-400 text-black' : 'bg-white/10 text-white'
-                    }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${index === 0 ? 'bg-yellow-400 text-black' : index === 1 ? 'bg-gray-300 text-black' : index === 2 ? 'bg-orange-400 text-black' : 'bg-white/10 text-white'}`}>
                       {index + 1}
                     </div>
                     <div>
                       <div className="font-bold text-white">{user.username}</div>
-                      <div className="text-[10px] text-blue-200 flex gap-2">
-                        <span>🔥 {user.streak} Day Streak</span>
-                        <span>📚 {user.topics_mastered} Mastered</span>
-                      </div>
+                      <div className="text-[10px] text-blue-200 flex gap-2"><span>🔥 {user.streak} Day Streak</span><span>📚 {user.topics_mastered} Mastered</span></div>
                     </div>
                   </div>
                   <div className="text-xl font-bold text-blue-300 drop-shadow-md">{user.xp} XP</div>
@@ -673,44 +663,25 @@ function MainApp({ session, triggerAuth }) {
           </div>
         )}
 
-        {/* TAB 6: PROFILE */}
+        {/* TAB 6: PROFILE (Accessible via Sidebar now) */}
         {activeTab === 'profile' && (
           <div className="p-6 max-w-lg mx-auto animate-fade-in">
             <h2 className="text-3xl font-serif font-bold text-white mb-6 drop-shadow-lg text-center">Student ID 🪪</h2>
-            
             <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 shadow-2xl relative overflow-hidden mb-8">
                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-               
                <div className="flex items-center gap-4 mb-6">
-                 <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-2xl shadow-lg">
-                   {userProfile?.student_level?.includes('Grandmaster') ? '👑' : '🎓'}
-                 </div>
+                 <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-2xl shadow-lg">🎓</div>
                  <div>
                    <h3 className="text-xl font-bold text-white">{userProfile?.full_name || session.user.email.split('@')[0]}</h3>
-                   <span className="text-xs bg-blue-500/30 px-2 py-1 rounded text-blue-100 border border-blue-400/30">
-                     {userProfile?.student_level || 'Novice 🌱'}
-                   </span>
+                   <span className="text-xs bg-blue-500/30 px-2 py-1 rounded text-blue-100 border border-blue-400/30">Novice 🌱</span>
                  </div>
                </div>
-
                <div className="space-y-3 text-sm text-blue-100/80">
-                 <div className="flex justify-between border-b border-white/5 pb-2">
-                   <span>🎓 Education</span>
-                   <span className="font-bold text-white">{userProfile?.education_level || 'Not set'}</span>
-                 </div>
-                 <div className="flex justify-between border-b border-white/5 pb-2">
-                   <span>🏫 Institution</span>
-                   <span className="font-bold text-white">{userProfile?.institution || 'Not set'}</span>
-                 </div>
-                 <div className="flex justify-between border-b border-white/5 pb-2">
-                   <span>📍 City</span>
-                   <span className="font-bold text-white">{userProfile?.city || 'Not set'}</span>
-                 </div>
+                 <div className="flex justify-between border-b border-white/5 pb-2"><span>🎓 Education</span><span className="font-bold text-white">{userProfile?.education_level || 'Not set'}</span></div>
+                 <div className="flex justify-between border-b border-white/5 pb-2"><span>🏫 Institution</span><span className="font-bold text-white">{userProfile?.institution || 'Not set'}</span></div>
+                 <div className="flex justify-between border-b border-white/5 pb-2"><span>📍 City</span><span className="font-bold text-white">{userProfile?.city || 'Not set'}</span></div>
                </div>
-
-               <button onClick={() => setEditingProfile(true)} className="mt-6 w-full bg-white/10 hover:bg-white/20 py-2 rounded-xl text-xs uppercase tracking-widest font-bold transition">
-                 Edit Profile
-               </button>
+               <button onClick={() => setEditingProfile(true)} className="mt-6 w-full bg-white/10 hover:bg-white/20 py-2 rounded-xl text-xs uppercase tracking-widest font-bold transition">Edit Profile</button>
             </div>
 
             {editingProfile && (
@@ -718,89 +689,51 @@ function MainApp({ session, triggerAuth }) {
                 <div className="bg-[#1a2c38] w-full max-w-md rounded-3xl p-6 border border-white/10 shadow-2xl">
                   <h3 className="text-xl font-bold mb-4">{isNewUser ? "Setup Your Profile" : "Edit Details"}</h3>
                   <div className="space-y-4">
-                    <input 
-                      placeholder="Full Name (Required)" 
-                      value={formData.full_name} 
-                      onChange={e => setFormData({...formData, full_name: e.target.value})}
-                      className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-blue-400"
-                    />
-                    <input 
-                      placeholder="Class / Degree (e.g. 12th Grade)" 
-                      value={formData.education_level} 
-                      onChange={e => setFormData({...formData, education_level: e.target.value})}
-                      className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-blue-400"
-                    />
-                    <input 
-                      placeholder="School / College" 
-                      value={formData.institution} 
-                      onChange={e => setFormData({...formData, institution: e.target.value})}
-                      className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-blue-400"
-                    />
-                    <input 
-                      placeholder="City" 
-                      value={formData.city} 
-                      onChange={e => setFormData({...formData, city: e.target.value})}
-                      className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-blue-400"
-                    />
+                    <input placeholder="Full Name (Required)" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-blue-400" />
+                    <input placeholder="Class / Degree" value={formData.education_level} onChange={e => setFormData({...formData, education_level: e.target.value})} className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-blue-400" />
+                    <input placeholder="Institution" value={formData.institution} onChange={e => setFormData({...formData, institution: e.target.value})} className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-blue-400" />
+                    <input placeholder="City" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-blue-400" />
                   </div>
                   <div className="flex gap-3 mt-6">
-                    {!isNewUser && (
-                      <button onClick={() => setEditingProfile(false)} className="flex-1 py-3 rounded-xl text-white/50 hover:bg-white/5">Cancel</button>
-                    )}
-                    <button onClick={saveProfile} className="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold shadow-lg">
-                      {isNewUser ? "Start Journey 🚀" : "Save Changes"}
-                    </button>
+                    {!isNewUser && <button onClick={() => setEditingProfile(false)} className="flex-1 py-3 rounded-xl text-white/50 hover:bg-white/5">Cancel</button>}
+                    <button onClick={saveProfile} className="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold shadow-lg">Save</button>
                   </div>
                 </div>
               </div>
             )}
           </div>
         )}
-
       </main>
 
-      {/* 3. INPUT AREA */}
+      {/* 3. INPUT AREA (Home only) */}
       {activeTab === 'home' && (
         <div className="fixed bottom-24 w-full px-4 max-w-2xl mx-auto left-0 right-0 z-40">
            <div className="bg-[#0F2027]/60 backdrop-blur-2xl border border-white/20 p-2 rounded-full flex items-center shadow-2xl ring-1 ring-white/10">
              <input 
-               value={query} 
-               onChange={e => setQuery(e.target.value)} 
+               value={query} onChange={e => setQuery(e.target.value)} 
                placeholder="Ask about Article 21, Preamble..." 
                className="flex-1 bg-transparent border-none px-4 py-2 text-sm text-white focus:outline-none placeholder-blue-200/50 font-light" 
-               onKeyDown={e => e.key === 'Enter' && handleAsk()} 
-               disabled={loading}
+               onKeyDown={e => e.key === 'Enter' && handleAsk()} disabled={loading}
              />
-             <button 
-               onClick={handleAsk} 
-               disabled={loading || !query.trim()} 
-               className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all ${
-                 loading || !query.trim() ? 'bg-white/5 text-white/30' : 'bg-[#2872A1] text-white hover:scale-110 hover:shadow-blue-500/50'
-               }`}
-             >
+             <button onClick={handleAsk} disabled={loading || !query.trim()} className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all ${loading || !query.trim() ? 'bg-white/5 text-white/30' : 'bg-[#2872A1] text-white hover:scale-110 hover:shadow-blue-500/50'}`}>
                {loading ? '●' : '↑'}
              </button>
            </div>
         </div>
       )}
 
-      {/* 4. BOTTOM NAVIGATION */}
-      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-         <nav className="bg-black/40 backdrop-blur-2xl border border-white/10 rounded-full px-8 py-4 flex gap-6 shadow-2xl ring-1 ring-white/5">
+        {/* 4. CLEAN BOTTOM NAVIGATION (4 Tabs Only) */}
+      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40">
+         <nav className="bg-black/40 backdrop-blur-2xl border border-white/10 rounded-full px-8 py-4 flex gap-8 shadow-2xl ring-1 ring-white/5">
             {[
               { id: 'home', icon: <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/> },
               { id: 'vault', icon: <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/> },
               { id: 'test', icon: <><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></> },
-              { id: 'analytics', icon: <><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></> },
-              { id: 'leaderboard', icon: <path d="M6 9H12V21H6V9ZM18 15H12V21H18V15ZM12 3L2 21H22L12 3Z" /> },
-              { id: 'profile', icon: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></> }
+              { id: 'analytics', icon: <><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></> }
             ].map(tab => (
               <button 
-                key={tab.id} 
-                onClick={() => handleTabChange(tab.id)} // CHANGED to handleTabChange
-                className={`p-2 transition-all duration-300 rounded-full relative ${
-                  activeTab === tab.id ? 'text-white scale-125 drop-shadow-glow' : 'text-white/40 hover:text-white hover:scale-110'
-                }`}
+                key={tab.id} onClick={() => handleTabChange(tab.id)} 
+                className={`p-2 transition-all duration-300 rounded-full relative ${activeTab === tab.id ? 'text-white scale-125 drop-shadow-glow' : 'text-white/40 hover:text-white hover:scale-110'}`}
               >
                 {activeTab === tab.id && <div className="absolute inset-0 bg-white/20 blur-lg rounded-full"></div>}
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
@@ -817,70 +750,11 @@ function MainApp({ session, triggerAuth }) {
           <div className="bg-[#1a2c38]/80 w-full max-w-lg max-h-[80vh] rounded-[2rem] p-8 overflow-y-auto border border-white/10 relative shadow-2xl ring-1 ring-white/5">
             <button onClick={() => setSelectedArticle(null)} className="absolute top-6 right-6 bg-white/10 hover:bg-white/20 w-8 h-8 rounded-full flex items-center justify-center text-white/70 transition-all">✕</button>
             <h1 className="text-3xl font-serif font-bold text-white mb-6 drop-shadow-md">{selectedArticle.title}</h1>
-            <div className="text-blue-100/90 leading-loose font-serif whitespace-pre-wrap text-lg">
-              {selectedArticle.notes}
-            </div>
-            <div className="mt-8 pt-6 border-t border-white/10 text-center">
-              <span className="text-xs text-white/30 uppercase tracking-widest font-bold">Keep Reviewing to retain mastery</span>
-            </div>
+            <div className="text-blue-100/90 leading-loose font-serif whitespace-pre-wrap text-lg">{selectedArticle.notes}</div>
           </div>
         </div>
       )}
 
-      {/* 6. PAYWALL MODAL */}
-      <AnimatePresence>
-        {showPaywall && (
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md px-4"
-          >
-            <motion.div 
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
-              className="bg-gradient-to-br from-[#0F2027] via-[#154360] to-[#203A43] border border-amber-500/30 shadow-2xl shadow-amber-500/10 w-full max-w-sm p-8 rounded-3xl relative"
-            >
-              <button 
-                onClick={() => setShowPaywall(false)}
-                className="absolute top-4 right-6 text-white/50 hover:text-white text-xl font-bold"
-              >
-                ✕
-              </button>
-              
-              <div className="text-center mb-6">
-                <div className="text-5xl mb-2 drop-shadow-lg">🪙</div>
-                <h2 className="text-2xl font-serif font-bold text-white mb-1">Out of Tokens</h2>
-                <p className="text-blue-200 text-xs font-light">You need tokens to generate deep-analysis Constitution tests.</p>
-              </div>
-
-              <div className="space-y-4">
-                <button 
-                  onClick={() => handlePayment(49, 10)}
-                  className="w-full relative overflow-hidden group bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-2xl flex justify-between items-center transition-all"
-                >
-                  <div className="text-left">
-                    <h3 className="text-white font-bold text-lg group-hover:text-amber-300 transition-colors">Starter Pack</h3>
-                    <p className="text-white/50 text-xs">+10 Tokens</p>
-                  </div>
-                  <div className="bg-white/10 px-4 py-2 rounded-xl text-white font-bold">₹49</div>
-                </button>
-
-                <button 
-                  onClick={() => handlePayment(149, 50)}
-                  className="w-full relative overflow-hidden group bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/50 p-4 rounded-2xl flex justify-between items-center transition-all"
-                >
-                  <div className="absolute top-0 right-0 bg-amber-500 text-[#0F2027] text-[9px] font-bold px-2 py-1 rounded-bl-lg">POPULAR</div>
-                  <div className="text-left">
-                    <h3 className="text-amber-400 font-bold text-lg">Scholar Pack</h3>
-                    <p className="text-amber-400/70 text-xs">+50 Tokens</p>
-                  </div>
-                  <div className="bg-amber-500 text-[#0F2027] px-4 py-2 rounded-xl font-bold">₹149</div>
-                </button>
-              </div>
-              <p className="text-center text-white/30 text-[10px] mt-6">Secured by Razorpay</p>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
     </div>
   );
-              }
+}
