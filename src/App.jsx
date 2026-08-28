@@ -5,7 +5,7 @@ import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const BACKEND_URL = "https://policy-path-ai-backend.onrender.com"; 
+const BACKEND_URL = "https://policy-path-ai-backend-1.onrender.com"; 
 
 // --- 1. THE FRONT DOOR (Landing Page + Auth Modal Wrapper) ---
 export default function App() {
