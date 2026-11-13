@@ -7,6 +7,247 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const BACKEND_URL = "https://policy-path-ai-backend-1.onrender.com";
 
+// --- CURRICULUM DATA FOR 2.2 LEARN & 2.3 PRACTICE ---
+const SUBJECTS_DATA = [
+  {
+    id: 'polity',
+    icon: '📕',
+    name: 'Indian Polity',
+    totalTopics: 45,
+    subtitle: 'Constitution, Parliament & Governance',
+    chapters: [
+      {
+        id: 'source-of-authority',
+        title: 'Source of Authority',
+        defaultStatus: 'mastered',
+        progress: 100,
+        concept:
+          'In India, constitutional sovereignty rests with "We, the People of India." The Constituent Assembly drafted and adopted the Constitution on 26 November 1949 on behalf of the citizens, making the people—not the British Parliament or any monarch—the ultimate fountainhead of legal and political authority.',
+        keyPoints: [
+          'Enacting clause of the Preamble establishes popular sovereignty ("We, the People of India").',
+          'Adopted on 26 November 1949; came into full force on 26 January 1950.',
+          'Constitution is supreme law; all three organs (Legislature, Executive, Judiciary) derive powers from it.',
+        ],
+        pyq: 'Asked in UPSC Prelims 2017, 2020 & 2021 (Nature of Indian Sovereignty & Preamble)',
+      },
+      {
+        id: 'citizenship',
+        title: 'Citizenship',
+        defaultStatus: 'mastered',
+        progress: 100,
+        concept:
+          'Articles 5 to 11 (Part II) of the Constitution deal with citizenship at the commencement of the Republic, while Parliament holds exclusive power under Article 11 to regulate acquisition and termination of citizenship via the Citizenship Act, 1955.',
+        keyPoints: [
+          'India follows Single Citizenship (borrowed from the UK), unlike dual citizenship in the USA.',
+          'Five modes of acquisition under Citizenship Act 1955: Birth, Descent, Registration, Naturalisation, Incorporation of Territory.',
+          'Three modes of loss: Renunciation, Termination, and Deprivation.',
+        ],
+        pyq: 'Asked in UPSC Prelims 2018 & 2021 (Single Citizenship & Constitutional Provisions)',
+      },
+      {
+        id: 'fundamental-rights',
+        title: 'Fundamental Rights',
+        defaultStatus: 'in_progress',
+        progress: 60,
+        concept:
+          'Articles 12 to 35 (Part III), known as the Magna Carta of India, guarantee six core civil and political rights enforceable directly by the Supreme Court (Article 32) and High Courts (Article 226) against arbitrary state action.',
+        keyPoints: [
+          'Six categories: Right to Equality (14–18), Freedom (19–22), Against Exploitation (23–24), Religion (25–28), Cultural & Educational (29–30), Constitutional Remedies (32).',
+          'Article 20 and Article 21 can never be suspended even during a National Emergency (44th Amendment, 1978).',
+          'Justiciable in nature and subject to reasonable restrictions in the interest of sovereignty, public order, and morality.',
+        ],
+        pyq: 'Asked in UPSC Prelims 2015, 2017, 2019, 2021 & 2023 (Article 14, 19, 21 & Writs)',
+      },
+      {
+        id: 'directive-principles',
+        title: 'Directive Principles',
+        defaultStatus: 'not_started',
+        progress: 60,
+        concept:
+          'Articles 36 to 51 (Part IV), borrowed from the Irish Constitution, are positive socio-economic obligations guiding the State to establish a Welfare State and economic democracy in India.',
+        keyPoints: [
+          'Non-justiciable in courts (Article 37), yet "fundamental in the governance of the country."',
+          'Classified into three ideological streams: Socialistic, Gandhian, and Liberal-Intellectual principles.',
+          'Minerva Mills case (1980) held that harmony and balance between Fundamental Rights and DPSP is part of the Basic Structure.',
+        ],
+        pyq: 'Asked in UPSC Prelims 2015, 2017, 2020 & 2023 (Welfare State & Separation of Judiciary)',
+      },
+      {
+        id: 'fundamental-duties',
+        title: 'Fundamental Duties',
+        defaultStatus: 'not_started',
+        progress: 0,
+        concept:
+          'Article 51A (Part IV-A) enumerates 11 civic and moral duties of Indian citizens, added on the recommendation of the Swaran Singh Committee to remind citizens that rights are inseparable from duties.',
+        keyPoints: [
+          'First 10 duties added by the 42nd Constitutional Amendment Act, 1976; 11th duty (education for children aged 6–14) added by 86th Amendment, 2002.',
+          'Inspired by the Constitution of the erstwhile USSR; apply only to citizens (not foreigners).',
+          'Non-enforceable directly by writs, though Parliament can enforce specific duties via statutes (e.g., Prevention of Insults to National Honour Act).',
+        ],
+        pyq: 'Asked in UPSC Prelims 2012, 2015 & 2017 (42nd Amendment & Enforceability)',
+      },
+    ],
+  },
+  {
+    id: 'economy',
+    icon: '📗',
+    name: 'Indian Economy',
+    totalTopics: 38,
+    subtitle: 'Fiscal Policy, RBI, Inflation & Growth',
+    chapters: [
+      {
+        id: 'monetary-policy',
+        title: 'Monetary Policy & RBI',
+        defaultStatus: 'not_started',
+        progress: 0,
+        concept:
+          'The Reserve Bank of India regulates money supply, credit conditions, and inflation targeting (4% ± 2%) through the six-member Monetary Policy Committee (MPC) under the RBI Act, 1934.',
+        keyPoints: [
+          'Quantitative tools: Repo Rate, Reverse Repo, SDF, CRR, SLR, and Open Market Operations (OMOs).',
+          'MPC consists of 3 RBI officials and 3 external members appointed by the Central Government.',
+          'Headline inflation benchmark in India is CPI (Combined).',
+        ],
+        pyq: 'Asked in UPSC Prelims 2019, 2020 & 2022 (MPC & Liquidity Tools)',
+      },
+    ],
+  },
+  {
+    id: 'geography',
+    icon: '📘',
+    name: 'Geography',
+    totalTopics: 42,
+    subtitle: 'Monsoon, Drainage, Resources & Maps',
+    chapters: [
+      {
+        id: 'indian-monsoon',
+        title: 'Indian Monsoon Mechanism',
+        defaultStatus: 'not_started',
+        progress: 0,
+        concept:
+          'The Indian Monsoon is a seasonal reversal of planetary winds driven by differential heating of land and sea, northward shift of the ITCZ, Tibetan Plateau heating, and Mascarene High pressure.',
+        keyPoints: [
+          'South-West Monsoon brings ~75% of India’s annual rainfall (June to September).',
+          'El Niño suppresses Indian monsoon rainfall; La Niña and positive Indian Ocean Dipole (IOD) strengthen it.',
+          'Tamil Nadu coast receives bulk of its rainfall from the North-East (retreating) Monsoon.',
+        ],
+        pyq: 'Asked in UPSC Prelims 2017 & 2021 (ITCZ, Jet Streams & IOD)',
+      },
+    ],
+  },
+  {
+    id: 'history',
+    icon: '📙',
+    name: 'History',
+    totalTopics: 50,
+    subtitle: 'Ancient, Medieval, Modern & Art/Culture',
+    chapters: [
+      {
+        id: 'constitutional-developments',
+        title: 'Acts Before 1947',
+        defaultStatus: 'not_started',
+        progress: 0,
+        concept:
+          'British parliamentary statutes from the Regulating Act of 1773 to the Government of India Act of 1935 laid the institutional skeleton—federalism, bicameralism, and provincial autonomy—later adapted into the Indian Constitution.',
+        keyPoints: [
+          'Morley-Minto Reforms (1909) introduced separate electorates for Muslims.',
+          'Montagu-Chelmsford Reforms (1919) introduced Dyarchy in provinces.',
+          'Government of India Act (1935) introduced Provincial Autonomy and proposed an All-India Federation.',
+        ],
+        pyq: 'Asked in UPSC Prelims 2018, 2021 & 2023 (1919 & 1935 Acts)',
+      },
+    ],
+  },
+  {
+    id: 'current-affairs',
+    icon: '📓',
+    name: 'Current Affairs',
+    totalTopics: null,
+    subtitle: 'Updated daily',
+    chapters: [
+      {
+        id: 'daily-polity-digest',
+        title: 'Supreme Court & Constitutional Updates',
+        defaultStatus: 'not_started',
+        progress: 0,
+        concept:
+          'Stay updated with landmark Supreme Court constitutional bench verdicts, Parliamentary committee reports, Governor-State relations, and Election Commission reforms relevant for Prelims and GS Paper II.',
+        keyPoints: [
+          'Focus on constitutional articles cited in recent judgments (Articles 14, 19, 21, 142, 200, 356).',
+          'Link every current event back to static Laxmikanth/NCERT concepts.',
+        ],
+        pyq: 'High-yield area for UPSC Prelims & Mains GS-2',
+      },
+    ],
+  },
+];
+
+// --- HELPER: CLEAN MARKDOWN & STRUCTURED SECTIONS FOR 2.5 AI CHAT ---
+function FormattedAIMessage({ text }) {
+  const lines = text.split('\n');
+
+  const renderInlineBold = (str) => {
+    const parts = str.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, idx) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return (
+          <strong key={idx} className="font-semibold text-[#111827] dark:text-white">
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      return <span key={idx}>{part.replace(/\*/g, '')}</span>;
+    });
+  };
+
+  return (
+    <div className="space-y-2 text-[15px] leading-[1.6] text-[#4B5563] dark:text-[#D1D5DB]">
+      {lines.map((rawLine, index) => {
+        const line = rawLine.trim();
+        if (!line) return <div key={index} className="h-1" />;
+
+        // Headings (### or numbered bold section headers)
+        if (line.startsWith('###') || line.startsWith('##')) {
+          const cleanHeading = line.replace(/^#+\s*/, '').replace(/\*\*/g, '');
+          return (
+            <div
+              key={index}
+              className="pt-2 pb-0.5 font-semibold text-[16px] text-[#111827] dark:text-white"
+            >
+              {cleanHeading}
+            </div>
+          );
+        }
+
+        // Bullet points (- , * , • )
+        if (/^[-*•]\s+/.test(line)) {
+          const content = line.replace(/^[-*•]\s+/, '');
+          return (
+            <div key={index} className="flex items-start gap-2 pl-1">
+              <span className="text-[#FF6B00] font-bold mt-0.5">•</span>
+              <div className="flex-1">{renderInlineBold(content)}</div>
+            </div>
+          );
+        }
+
+        // Numbered points (1. , 2. )
+        const numMatch = line.match(/^(\d+\.)\s+(.*)/);
+        if (numMatch) {
+          return (
+            <div key={index} className="flex items-start gap-2 pl-1">
+              <span className="font-semibold text-[#1A2332] dark:text-[#FF6B00]">
+                {numMatch[1]}
+              </span>
+              <div className="flex-1">{renderInlineBold(numMatch[2])}</div>
+            </div>
+          );
+        }
+
+        return <p key={index}>{renderInlineBold(line)}</p>;
+      })}
+    </div>
+  );
+}
+
 // --- 1. THE FRONT DOOR (Landing Page + Auth Modal Wrapper) ---
 export default function App() {
   const [session, setSession] = useState(null);
@@ -90,7 +331,7 @@ export default function App() {
               UPSC polity & governance
             </div>
             <h1 className="type-h1 mb-1.5">PolicyPath AI</h1>
-            <p className="type-body">Your personal Constitution mentor</p>
+            <p className="type-body">Main hoon aapka AI teacher</p>
           </div>
 
           <Auth
@@ -109,7 +350,7 @@ export default function App() {
               Continue as guest
             </button>
             <p className="type-caption text-center mt-1">
-              Guests can chat, but need an account to save to Learn.
+              Guests can chat, but need an account to save progress.
             </p>
           </div>
         </div>
@@ -126,7 +367,7 @@ export default function App() {
         toggleDarkMode={() => setIsDarkMode((d) => !d)}
       />
 
-      {/* Auth Modal overlay triggers when protected tab clicked mid-app */}
+      {/* Auth Modal overlay triggers when protected feature clicked mid-app */}
       <AnimatePresence>
         {showAuthModal && !session && (
           <motion.div
@@ -149,7 +390,7 @@ export default function App() {
               <div className="text-center mb-6">
                 <h2 className="type-h2 mb-1">Unlock PolicyPath</h2>
                 <p className="type-body">
-                  Save your progress, take tests, and view analytics.
+                  Save notes, practice PYQs, and track your UPSC progress.
                 </p>
               </div>
               <Auth
@@ -170,29 +411,46 @@ export default function App() {
 function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
   const userStorageKey = session ? `pp_chat_history_${session.user.id}` : `pp_chat_history_guest`;
 
-  // --- STATES ---
-  const [messages, setMessages] = useState(() => {
-    const saved = localStorage.getItem(userStorageKey);
-    return saved
-      ? JSON.parse(saved)
-      : [{ role: "bot", text: "Welcome. I am ready to guide you through the Constitution. Ask me anything to start.", type: "mentor" }];
-  });
+  // --- NAVIGATION & MODAL STATES ---
+  const [activeTab, setActiveTab] = useState('home'); // 'home' | 'learn' | 'practice' | 'progress' | 'leaderboard' | 'profile'
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [language, setLanguage] = useState('English'); // 'English' | 'हिंदी'
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
-  const [vault, setVault] = useState([]);
-  const [examResults, setExamResults] = useState([]);
-  const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('home');
-  const [selectedArticle, setSelectedArticle] = useState(null);
+  // --- 2.1 HOME TODAY'S PLAN STATE ---
+  const [todaysPlan, setTodaysPlan] = useState([
+    { id: 'revise-fr', label: 'Revise: Fundamental Rights', done: false, action: 'lesson', subjectId: 'polity', chapterId: 'fundamental-rights' },
+    { id: 'new-dpsp', label: 'New: Directive Principles', done: false, action: 'lesson', subjectId: 'polity', chapterId: 'directive-principles' },
+    { id: 'practice-polity', label: 'Practice: 10 MCQs on Polity', done: false, action: 'practice' },
+  ]);
 
-  // Quiz States
-  const [testState, setTestState] = useState("idle");
+  // --- 2.2 LEARN STATE ---
+  const [selectedSubjectId, setSelectedSubjectId] = useState(null);
+  const [selectedLesson, setSelectedLesson] = useState(null);
+  const [aiLessonExtra, setAiLessonExtra] = useState('');
+  const [loadingLessonAI, setLoadingLessonAI] = useState(false);
+
+  // --- 2.3 PRACTICE STATE ---
+  const [testState, setTestState] = useState("idle"); // 'idle' | 'topic_picker' | 'loading' | 'active' | 'result'
+  const [quizTitle, setQuizTitle] = useState("Polity Mix");
   const [quiz, setQuiz] = useState([]);
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
 
-  // Profile & Leaderboard
+  // --- 2.5 AI CHAT STATE ---
+  const [messages, setMessages] = useState(() => {
+    const saved = localStorage.getItem(userStorageKey);
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+
+  // --- SUPABASE DATA STATES ---
+  const [vault, setVault] = useState([]);
+  const [examResults, setExamResults] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [userProfile, setUserProfile] = useState(null);
   const [editingProfile, setEditingProfile] = useState(false);
@@ -200,29 +458,35 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
   const [isNewUser, setIsNewUser] = useState(false);
   const [viewingSwot, setViewingSwot] = useState(null);
 
-  // Sidebar State
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
   const messagesEndRef = useRef(null);
   const chatInputRef = useRef(null);
+
+  // Derived User Display Info
+  const displayName =
+    userProfile?.full_name?.trim() ||
+    (session?.user?.email ? session.user.email.split('@')[0] : 'Aspirant');
+  const firstName = displayName.split(' ')[0];
+  const streakCount = userProfile?.streak || 1;
+  const totalXP = userProfile?.xp || 0;
+  const currentLevel = Math.floor(totalXP / 100) + 1;
+  const xpInCurrentLevel = totalXP % 100;
+  const xpToNextLevel = 100 - xpInCurrentLevel;
+  const levelNames = ['Beginner', 'Learner', 'Scholar', 'Analyst', 'Officer', 'Topper'];
+  const levelTitle = levelNames[Math.min(currentLevel - 1, levelNames.length - 1)];
 
   // Tab Navigation Protection
   const handleTabChange = (tabName) => {
     setIsSidebarOpen(false);
+    setIsChatOpen(false);
     if (!session && tabName !== 'home') {
       triggerAuth();
       return;
     }
+    if (tabName === 'learn') {
+      setSelectedSubjectId(null);
+      setSelectedLesson(null);
+    }
     setActiveTab(tabName);
-  };
-
-  // Floating "Ask Doubt 💬" FAB handler
-  const handleAskDoubtFab = () => {
-    setIsSidebarOpen(false);
-    setActiveTab('home');
-    setTimeout(() => {
-      chatInputRef.current?.focus();
-    }, 80);
   };
 
   // --- XP & STREAK LOGIC ---
@@ -263,12 +527,13 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
 
     await supabase.from('profiles').update(updates).eq('id', session.user.id);
     fetchLeaderboard();
+    fetchData();
   };
 
   const fetchLeaderboard = async () => {
     const { data } = await supabase
       .from('profiles')
-      .select('username, xp, streak, topics_mastered')
+      .select('username, full_name, xp, streak, topics_mastered')
       .order('xp', { ascending: false })
       .limit(10);
     if (data) setLeaderboard(data);
@@ -332,7 +597,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
     }
   }
 
-  // --- EFFECT HOOKS ---
   useEffect(() => {
     fetchData();
     fetchLeaderboard();
@@ -341,18 +605,67 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
 
   useEffect(() => {
     localStorage.setItem(userStorageKey, JSON.stringify(messages));
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, userStorageKey]);
+    if (isChatOpen) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, userStorageKey, isChatOpen]);
 
-  // --- CORE FEATURES ---
-  const handleAsk = async () => {
-    if (!query.trim() || loading) return;
+  // --- SAVE TOPIC TO LEARN (SUPABASE VAULT TABLE) ---
+  const saveTopicToMastered = async (title, notes) => {
+    if (!session) {
+      triggerAuth();
+      return;
+    }
+    const isDuplicate = vault.some((v) => v.title.toLowerCase() === title.toLowerCase());
+    if (isDuplicate) {
+      alert(`"${title}" is already marked as Mastered!`);
+      return;
+    }
+    const { error } = await supabase.from('vault').insert([
+      { title, status: 'Mastered', notes: notes || 'Mastered via PolicyPath AI', user_id: session.user.id },
+    ]);
+    if (!error) {
+      confetti({ particleCount: 140, spread: 60, colors: ['#FF6B00', '#10B981', '#1A2332'] });
+      updateXP(25, 'mastery');
+      fetchData();
+    } else {
+      alert("Could not save topic: " + error.message);
+    }
+  };
 
-    const userQuery = query.trim();
+  // --- 2.2 OPEN LESSON & FETCH AI DEEP-DIVE ---
+  const openLesson = async (chapter) => {
+    setSelectedLesson(chapter);
+    setAiLessonExtra('');
+    setLoadingLessonAI(true);
+    try {
+      const prompt = `Provide a crisp UPSC exam-focused breakdown for "${chapter.title}" with: 1) Constitutional Articles/Provisions, 2) Key Supreme Court case or committee, and 3) One Prelims trap to watch out for. Keep it concise in bullet points.`;
+      const res = await fetch(`${BACKEND_URL}/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_query: prompt, history: "", mode: "chat" }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const cleaned = data.answer.split('||VAULT_START||')[0].trim();
+        setAiLessonExtra(cleaned);
+      }
+    } catch (e) {
+      console.error("Lesson AI fetch skipped:", e);
+    } finally {
+      setLoadingLessonAI(false);
+    }
+  };
+
+  // --- 2.5 AI CHAT SEND ---
+  const sendChatMessage = async (customPrompt) => {
+    const textToSend = (customPrompt ?? query).trim();
+    if (!textToSend || loading) return;
+
     setLoading(true);
-    setQuery("");
+    if (!customPrompt) setQuery("");
 
-    const newMessages = [...messages, { role: "user", text: userQuery }];
+    const newMessages = [...messages, { role: "user", text: textToSend }];
     setMessages(newMessages);
 
     const historyContext = messages
@@ -360,11 +673,20 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       .map((m) => `${m.role}: ${m.text}`)
       .join("\n");
 
+    const langInstruction =
+      language === 'हिंदी'
+        ? " (Reply in clear Hinglish / simple Hindi + English UPSC terms)"
+        : "";
+
     try {
       const res = await fetch(`${BACKEND_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_query: userQuery, history: historyContext, mode: "chat" }),
+        body: JSON.stringify({
+          user_query: textToSend + langInstruction,
+          history: historyContext,
+          mode: "chat",
+        }),
       });
 
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
@@ -389,51 +711,75 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
 
         if (session) {
           const isDuplicate = vault.some((v) => v.title.toLowerCase() === topicTitle.toLowerCase());
-          if (isDuplicate) {
-            setMessages((prev) => [
-              ...prev,
-              { role: "bot", text: `${visibleText}\n\n(Note: You already mastered "${topicTitle}".)` },
-            ]);
-          } else {
+          if (!isDuplicate) {
             const { error } = await supabase.from('vault').insert([
               { title: topicTitle, status: 'Mastered', notes: topicSummary, user_id: session.user.id },
             ]);
-
             if (!error) {
               confetti({ particleCount: 150, spread: 60, colors: ['#FF6B00', '#10B981', '#1A2332'] });
-              setMessages((prev) => [...prev, { role: "bot", text: visibleText, saved: true }]);
               updateXP(25, 'mastery');
               fetchData();
-            } else {
-              setMessages((prev) => [...prev, { role: "bot", text: visibleText }]);
             }
           }
-        } else {
-          setMessages((prev) => [
-            ...prev,
-            { role: "bot", text: `${visibleText}\n\n*(Sign in to save this to Learn!)*` },
-          ]);
         }
+        setMessages((prev) => [
+          ...prev,
+          { role: "bot", text: visibleText, topicHint: topicTitle, saved: Boolean(session) },
+        ]);
       } else {
-        setMessages((prev) => [...prev, { role: "bot", text: aiText }]);
+        // Infer short topic title from user's question for the "Save to Notes 📌" action button
+        const inferredTopic = textToSend.length > 45 ? textToSend.slice(0, 45) + '...' : textToSend;
+        setMessages((prev) => [...prev, { role: "bot", text: aiText, topicHint: inferredTopic }]);
       }
     } catch (e) {
-      setMessages((prev) => [...prev, { role: "bot", text: `⚠️ Network error. Please try again.` }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "bot", text: `⚠️ Network error. Please check your connection and try again.` },
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
-  const startTest = async () => {
-    if (vault.length === 0) return alert("Your Learn vault is empty. Study a topic first!");
+  // --- 2.5 VOICE INPUT (🎤 FOR HINDI/ENGLISH THINKING STUDENTS) ---
+  const handleVoiceInput = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice input is not supported in this browser. Try Chrome on Android or Desktop.");
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = language === 'हिंदी' ? 'hi-IN' : 'en-IN';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setQuery((prev) => (prev ? `${prev} ${transcript}` : transcript));
+    };
+
+    recognition.start();
+  };
+
+  // --- 2.3 QUIZ ENGINE (SMART QUIZ, TOPIC-WISE, PYQs) ---
+  const startQuizWithTopics = async (topicsPrompt, label = "Polity Mix") => {
+    if (!session) {
+      triggerAuth();
+      return;
+    }
+    setIsChatOpen(false);
+    setActiveTab('practice');
+    setQuizTitle(label);
     setTestState("loading");
 
-    const topics = vault.map((v) => v.title).join(", ");
     try {
       const res = await fetch(`${BACKEND_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_query: topics, mode: "quiz", history: "" }),
+        body: JSON.stringify({ user_query: topicsPrompt, mode: "quiz", history: "" }),
       });
 
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
@@ -450,12 +796,31 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       setQuiz(questionsList.slice(0, 10));
       setScore(0);
       setCurrentQIndex(0);
+      setSelectedOption(null);
       setTestState("active");
     } catch (e) {
       console.error("Quiz Gen Error:", e);
       setTestState("idle");
-      alert(`Error generating test: ${e.message}`);
+      alert(`Error generating quiz: ${e.message}`);
     }
+  };
+
+  const handleSmartQuiz = () => {
+    const weakAndSaved = [
+      'Fundamental Rights',
+      'Preamble of India',
+      ...vault.map((v) => v.title),
+    ]
+      .slice(0, 6)
+      .join(', ');
+    startQuizWithTopics(weakAndSaved, "Smart Quiz • Weak Areas");
+  };
+
+  const handlePyqQuiz = () => {
+    startQuizWithTopics(
+      "Actual UPSC Civil Services Prelims Previous Year Questions (2015-2024) on Indian Constitution, Preamble, Fundamental Rights, Parliament, and Judiciary",
+      "UPSC Prelims PYQs"
+    );
   };
 
   const finishTest = async () => {
@@ -463,9 +828,9 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
     const passed = score > 5;
     const earnedXP = passed ? 10 : 0;
 
-    let aiSwot = "Strengths: Good start.\nWeakness: Needs revision.";
+    let aiSwot = "Strengths: Good conceptual grasp.\nWeakness: Needs deeper article revision.";
     try {
-      const prompt = `Analyze this test performance: Score ${score}/10. Topics: Mixed Constitution. 
+      const prompt = `Analyze this test performance: Score ${score}/${quiz.length} on ${quizTitle}. 
       Generate a brief 4-line SWOT analysis (Strengths, Weaknesses, Opportunities, Threats) addressed to the student.`;
 
       const res = await fetch(`${BACKEND_URL}/ask`, {
@@ -479,29 +844,91 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       console.error("SWOT generation failed");
     }
 
-    await supabase.from('exam_results').insert([
-      {
-        score: score,
-        total_questions: quiz.length,
-        topics_covered: "Mixed vault test",
-        user_id: session.user.id,
-        swot_analysis: aiSwot,
-      },
-    ]);
-
-    if (earnedXP > 0) updateXP(earnedXP, 'quiz');
-    fetchData();
+    if (session?.user) {
+      await supabase.from('exam_results').insert([
+        {
+          score: score,
+          total_questions: quiz.length,
+          topics_covered: quizTitle,
+          user_id: session.user.id,
+          swot_analysis: aiSwot,
+        },
+      ]);
+      if (earnedXP > 0) updateXP(earnedXP, 'quiz');
+      fetchData();
+    }
   };
 
+  // --- COMPUTED METRICS ---
   const avgScore =
     examResults.length > 0
       ? Math.round(
           examResults.reduce((acc, curr) => acc + (curr.score / curr.total_questions) * 100, 0) /
             examResults.length
         )
-      : 0;
+      : 42;
 
-  // --- 1.3 BOTTOM NAVIGATION CONFIG ---
+  const masteredTitlesSet = new Set(vault.map((v) => v.title.toLowerCase()));
+  const politySubject = SUBJECTS_DATA[0];
+  const polityMasteredCount = Math.max(
+    vault.length,
+    politySubject.chapters.filter((c) => c.defaultStatus === 'mastered').length
+  );
+
+  // Build dynamic chapters list for selected subject (merging Supabase saved topics)
+  const getSubjectChapters = (subject) => {
+    if (!subject) return [];
+    const baseChapters = subject.chapters.map((ch) => {
+      const isMasteredInDb = masteredTitlesSet.has(ch.title.toLowerCase());
+      return {
+        ...ch,
+        status: isMasteredInDb ? 'mastered' : ch.defaultStatus,
+        progress: isMasteredInDb ? 100 : ch.progress,
+      };
+    });
+
+    if (subject.id === 'polity') {
+      const baseTitles = new Set(baseChapters.map((c) => c.title.toLowerCase()));
+      const extraFromDb = vault
+        .filter((v) => !baseTitles.has(v.title.toLowerCase()))
+        .map((v) => ({
+          id: `db-${v.id}`,
+          title: v.title,
+          status: 'mastered',
+          progress: 100,
+          concept: v.notes || 'Mastered through your PolicyPath Mentor sessions.',
+          keyPoints: [
+            'Saved directly from your AI Mentor revision.',
+            'Ready for UPSC Prelims MCQ practice.',
+          ],
+          pyq: 'High-yield Constitutional concept',
+        }));
+      return [...baseChapters, ...extraFromDb];
+    }
+
+    return baseChapters;
+  };
+
+ // Share app handler for 2.6 Sidebar
+  const handleShareApp = async () => {
+    const shareData = {
+      title: 'PolicyPath AI',
+      text: 'Prepare for UPSC Polity & GS with PolicyPath AI — free AI teacher & PYQ practice!',
+      url: 'https://policy-path-theta.vercel.app/',
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareData.url);
+        alert('Link copied to clipboard! Share it with your UPSC study group.');
+      }
+    } catch (err) {
+      console.log('Share cancelled');
+    }
+  };
+
+  // --- 1.3 BOTTOM NAVIGATION CONFIG (Home | Learn | Practice | Progress) ---
   const navTabs = [
     {
       id: 'home',
@@ -520,7 +947,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       ),
     },
     {
-      id: 'vault',
+      id: 'learn',
       label: 'Learn',
       outlineIcon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -534,7 +961,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       ),
     },
     {
-      id: 'test',
+      id: 'practice',
       label: 'Practice',
       outlineIcon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -549,7 +976,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       ),
     },
     {
-      id: 'analytics',
+      id: 'progress',
       label: 'Progress',
       outlineIcon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -569,10 +996,9 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
   // --- UI RENDER ---
   return (
     <div className="h-[100dvh] w-full bg-[#FFFFFF] dark:bg-[#0F1724] text-[#4B5563] dark:text-[#D1D5DB] font-sans overflow-hidden flex flex-col relative transition-colors duration-200">
-      {/* HEADER */}
+      {/* TOP HEADER */}
       <header className="px-5 py-3.5 flex justify-between items-center z-40 bg-[#FFFFFF] dark:bg-[#1A2332] border-b border-[#E5E7EB] dark:border-[#283548]">
         <div className="flex items-center gap-3.5">
-          {/* Hamburger Button */}
           <button
             onClick={() => setIsSidebarOpen(true)}
             aria-label="Open menu"
@@ -586,15 +1012,11 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
           </button>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#FF6B00]" />
-            {/* Brand: "PolicyPath" — Inter Bold, 18px, navy */}
-            <h1 className="type-brand text-[#1A2332] dark:text-white">
-              PolicyPath
-            </h1>
+            <h1 className="type-brand text-[#1A2332] dark:text-white">PolicyPath</h1>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5">
-          {/* Dark Mode Toggle */}
           <button
             onClick={toggleDarkMode}
             aria-label="Toggle dark mode"
@@ -604,14 +1026,15 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
             <span className="hidden sm:inline">{isDarkMode ? 'Light' : 'Dark'}</span>
           </button>
 
-          {/* Only allowed ALL-CAPS badge: "BETA" */}
           <div className="text-[11px] font-bold bg-[#1A2332] text-white px-2.5 py-1 rounded-[12px] tracking-wider">
             BETA
           </div>
         </div>
       </header>
 
-      {/* SIDEBAR OVERLAY */}
+      {/* ===================================================================== */}
+      {/* 2.6 SIDEBAR / PROFILE REDESIGN                                        */}
+      {/* ===================================================================== */}
       <AnimatePresence>
         {isSidebarOpen && (
           <>
@@ -627,90 +1050,150 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-              className="fixed top-0 left-0 bottom-0 w-3/4 max-w-xs bg-[#FFFFFF] dark:bg-[#1A2332] border-r border-[#E5E7EB] dark:border-[#283548] z-50 flex flex-col p-6 shadow-xl"
+              className="fixed top-0 left-0 bottom-0 w-4/5 max-w-xs bg-[#FFFFFF] dark:bg-[#1A2332] border-r border-[#E5E7EB] dark:border-[#283548] z-50 flex flex-col p-5 shadow-xl overflow-y-auto"
             >
-              <button
-                onClick={() => setIsSidebarOpen(false)}
-                className="absolute top-5 right-5 text-[#9CA3AF] hover:text-[#111827] dark:hover:text-white text-lg font-bold"
-              >
-                ✕
-              </button>
-
-              {/* Sidebar Header / Profile Preview */}
-              <div className="mb-8 mt-3 pb-6 border-b border-[#E5E7EB] dark:border-[#283548]">
-                {session ? (
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 bg-[#FF6B00] text-white rounded-[12px] flex items-center justify-center text-xl font-bold shadow-sm">
-                      🎓
-                    </div>
-                    <div>
-                      <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
-                        {userProfile?.full_name || 'Scholar'}
-                      </h3>
-                      <p className="type-caption text-[#10B981] font-medium mt-0.5">
-                        {userProfile?.xp || 0} XP • {userProfile?.streak || 0} day streak
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 bg-[#F9FAFB] dark:bg-[#0F1724] border border-[#E5E7EB] dark:border-[#283548] rounded-[12px] flex items-center justify-center text-xl">
-                      👤
-                    </div>
-                    <div>
-                      <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
-                        Guest user
-                      </h3>
-                      <button
-                        onClick={triggerAuth}
-                        className="type-caption text-[#FF6B00] font-medium hover:underline mt-0.5"
-                      >
-                        Sign in to save progress
-                      </button>
-                    </div>
-                  </div>
-                )}
+              {/* Close Button */}
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="text-[12px] font-medium text-[#6B7280] hover:text-[#111827] dark:hover:text-white px-2.5 py-1 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] transition"
+                >
+                  ╳ Close
+                </button>
               </div>
 
-              {/* Sidebar Navigation */}
-              <div className="flex flex-col gap-2 flex-1">
+              {/* Avatar, Name, Streak, Level & XP Progress */}
+              <div className="mt-2 pb-5 border-b border-[#E5E7EB] dark:border-[#283548]">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-[12px] bg-[#1A2332] text-white flex items-center justify-center text-xl font-bold shrink-0">
+                    {session ? firstName.charAt(0).toUpperCase() : '👤'}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="type-h3 font-semibold text-[#111827] dark:text-white truncate">
+                      {session ? displayName : 'Guest Aspirant'}
+                    </h3>
+                    <div className="type-caption text-[#FF6B00] font-medium mt-0.5">
+                      🔥 {streakCount}-day streak
+                    </div>
+                  </div>
+                </div>
+
+                {/* XP & Level Bar */}
+                <div className="mt-4 bg-[#F9FAFB] dark:bg-[#0F1724] p-3 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548]">
+                  <div className="text-[12px] font-medium text-[#111827] dark:text-white mb-1.5">
+                    ⭐ {totalXP} XP — Level {currentLevel}: {levelTitle}
+                  </div>
+                  <div className="w-full h-2 bg-[#E5E7EB] dark:bg-[#283548] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#10B981] rounded-full transition-all duration-300"
+                      style={{ width: `${xpInCurrentLevel}%` }}
+                    />
+                  </div>
+                  <div className="type-caption mt-1">
+                    Level {currentLevel + 1} in {xpToNextLevel} XP
+                  </div>
+                </div>
+              </div>
+
+              {/* Navigation Items */}
+              <div className="py-4 space-y-1 flex-1">
+                <button
+                  onClick={() => handleTabChange('progress')}
+                  className="w-full flex items-center gap-3 text-left px-3 py-2.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] text-[15px] text-[#374151] dark:text-white transition"
+                >
+                  <span>📊</span>
+                  <span>My Progress</span>
+                </button>
+                <button
+                  onClick={() => handleTabChange('home')}
+                  className="w-full flex items-center gap-3 text-left px-3 py-2.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] text-[15px] text-[#374151] dark:text-white transition"
+                >
+                  <span>📖</span>
+                  <span>Study Plan</span>
+                </button>
                 <button
                   onClick={() => handleTabChange('leaderboard')}
-                  className="flex items-center gap-3.5 text-left p-3.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] text-[#374151] dark:text-white transition"
+                  className="w-full flex items-center gap-3 text-left px-3 py-2.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] text-[15px] text-[#374151] dark:text-white transition"
                 >
-                  <span className="text-lg">👑</span>
-                  <span className="type-h3">Hall of fame</span>
+                  <span>🏆</span>
+                  <span>Hall of Fame</span>
+                </button>
+                <button
+                  onClick={() => handleTabChange('learn')}
+                  className="w-full flex items-center gap-3 text-left px-3 py-2.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] text-[15px] text-[#374151] dark:text-white transition"
+                >
+                  <span>🔖</span>
+                  <span>Saved Notes</span>
                 </button>
                 <button
                   onClick={() => handleTabChange('profile')}
-                  className="flex items-center gap-3.5 text-left p-3.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] text-[#374151] dark:text-white transition"
+                  className="w-full flex items-center gap-3 text-left px-3 py-2.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] text-[15px] text-[#374151] dark:text-white transition"
                 >
-                  <span className="text-lg">🪪</span>
-                  <span className="type-h3">Student ID</span>
+                  <span>📋</span>
+                  <span>My Student ID</span>
+                </button>
+                <button
+                  onClick={toggleDarkMode}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] text-[15px] text-[#374151] dark:text-white transition"
+                >
+                  <span className="flex items-center gap-3">
+                    <span>⚙️</span>
+                    <span>Settings</span>
+                  </span>
+                  <span className="type-caption">{isDarkMode ? 'Dark' : 'Light'}</span>
+                </button>
+                <button
+                  onClick={() => setLanguage((l) => (l === 'English' ? 'हिंदी' : 'English'))}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] text-[15px] text-[#374151] dark:text-white transition"
+                >
+                  <span className="flex items-center gap-3">
+                    <span>🌐</span>
+                    <span>Language</span>
+                  </span>
+                  <span className="text-[12px] font-semibold text-[#FF6B00]">{language}</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setIsSidebarOpen(false);
+                    setShowHelpModal(true);
+                  }}
+                  className="w-full flex items-center gap-3 text-left px-3 py-2.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] text-[15px] text-[#374151] dark:text-white transition"
+                >
+                  <span>❓</span>
+                  <span>Help & Feedback</span>
                 </button>
               </div>
 
-              {/* Sidebar Footer */}
-              <div className="pt-5 border-t border-[#E5E7EB] dark:border-[#283548] mt-auto">
+              {/* Footer: Free Forever + Share + Sign Out */}
+              <div className="pt-4 border-t border-[#E5E7EB] dark:border-[#283548] space-y-3">
+                <div className="bg-[#10B981]/10 border border-[#10B981]/20 rounded-[12px] p-3">
+                  <div className="text-[12px] font-semibold text-[#10B981]">
+                    🆓 PolicyPath is FREE forever
+                  </div>
+                  <div className="type-caption mt-0.5">Built for aspirants like you</div>
+                </div>
+
+                <button
+                  onClick={handleShareApp}
+                  className="w-full bg-[#F9FAFB] dark:bg-[#0F1724] hover:border-[#FF6B00] border border-[#E5E7EB] dark:border-[#283548] text-[#111827] dark:text-white font-medium py-2.5 rounded-[12px] text-[14px] transition"
+                >
+                  Share with friends 📤
+                </button>
+
                 {session ? (
                   <button
                     onClick={() => {
                       supabase.auth.signOut();
                       setIsSidebarOpen(false);
                     }}
-                    className="w-full flex items-center justify-center gap-2 p-3.5 rounded-[12px] bg-[#EF4444]/10 text-[#EF4444] font-semibold text-[15px] hover:bg-[#EF4444]/15 transition"
+                    className="w-full bg-[#EF4444]/10 hover:bg-[#EF4444]/15 text-[#EF4444] font-semibold py-2.5 rounded-[12px] text-[14px] transition"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                      <polyline points="16 17 21 12 16 7" />
-                      <line x1="21" y1="12" x2="9" y2="12" />
-                    </svg>
                     Sign out
                   </button>
                 ) : (
                   <button
                     onClick={triggerAuth}
-                    className="w-full bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold py-3.5 rounded-[12px] shadow-sm transition text-[15px]"
+                    className="w-full bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold py-2.5 rounded-[12px] text-[14px] transition"
                   >
                     Sign in / Register
                   </button>
@@ -721,152 +1204,492 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         )}
       </AnimatePresence>
 
-      {/* MAIN CONTENT AREA */}
-      <main className="flex-1 overflow-y-auto pb-40 scroll-smooth bg-[#FFFFFF] dark:bg-[#0F1724]">
-        {/* TAB 1: HOME */}
+      {/* ===================================================================== */}
+      {/* MAIN CONTENT AREA                                                     */}
+      {/* ===================================================================== */}
+      <main className="flex-1 overflow-y-auto pb-28 scroll-smooth bg-[#FFFFFF] dark:bg-[#0F1724]">
+        {/* ------------------------------------------------------------------- */}
+        {/* 2.1 HOME SCREEN (COMPLETE OVERHAUL)                                 */}
+        {/* ------------------------------------------------------------------- */}
         {activeTab === 'home' && (
-          <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-4">
-            {messages.map((m, i) => (
-              <div
-                key={i}
-                className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
-              >
-                <div
-                  className={`max-w-[85%] p-4 sm:p-5 rounded-[12px] ${
-                    m.role === 'user'
-                      ? 'bg-[#1A2332] text-white text-[15px] leading-[1.6] shadow-sm'
-                      : 'surface-card type-body'
-                  }`}
-                >
-                  <div className="whitespace-pre-wrap">{m.text}</div>
-                  {m.saved && (
-                    <div className="mt-3 pt-2.5 border-t border-[#E5E7EB] dark:border-[#283548] flex items-center gap-2 text-[#10B981] text-[12px] font-medium">
-                      <span className="bg-[#10B981]/15 px-1.5 py-0.5 rounded-full">✓</span>
-                      Saved to Learn
-                    </div>
-                  )}
-                </div>
+          <div className="max-w-xl mx-auto p-5 space-y-5 animate-fade-in">
+            {/* Top Greeting & Streak */}
+            <div>
+              <h1 className="type-h1">Namaste, {firstName}! 🙏</h1>
+              <p className="type-body mt-0.5">Day {streakCount} of your UPSC journey</p>
+              <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-[12px] bg-[#FF6B00]/10 text-[#FF6B00] text-[12px] font-semibold">
+                <span>🔥</span>
+                <span>{streakCount}-day streak — keep going!</span>
               </div>
-            ))}
-            {loading && (
-              <div className="flex justify-start pl-1">
-                <div className="surface-card flex items-center gap-2.5 type-caption px-4 py-2.5">
-                  <div className="w-2 h-2 bg-[#FF6B00] rounded-full animate-bounce" />
-                  The mentor is drafting...
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} className="h-4" />
-          </div>
-        )}
+            </div>
 
-        {/* TAB 2: LEARN (Vault) */}
-        {activeTab === 'vault' && (
-          <div className="p-5 sm:p-6 max-w-4xl mx-auto space-y-6">
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-              <h1 className="type-h1 mb-1">Mastery library</h1>
-              <p className="type-body">
-                Your constitutional knowledge portfolio ({vault.length} topics).
-              </p>
-            </motion.div>
-
-            {vault.length === 0 ? (
-              <div className="surface-card p-12 text-center">
-                <div className="text-4xl mb-3">📭</div>
-                <p className="type-body">Your library is empty.</p>
-                <button
-                  onClick={() => setActiveTab('home')}
-                  className="mt-4 bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold text-[15px] px-5 py-2.5 rounded-[12px] transition"
-                >
-                  Start learning
-                </button>
+            {/* Today's Plan Card */}
+            <div className="surface-card-elevated p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="type-h2 flex items-center gap-2">
+                  <span>📅</span>
+                  <span>Today's Focus</span>
+                </h2>
+                <span className="type-caption">
+                  {todaysPlan.filter((t) => t.done).length}/{todaysPlan.length} done
+                </span>
               </div>
-            ) : (
-              <motion.div
-                className="flex gap-5 overflow-x-auto hide-scrollbar pb-10 px-1 snap-x"
-                initial="hidden"
-                animate="visible"
-                variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
-              >
-                {vault.map((v, i) => (
-                  <motion.div
-                    key={v.id}
-                    onClick={() => setSelectedArticle(v)}
-                    variants={{
-                      hidden: { opacity: 0, x: 30 },
-                      visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 120 } },
-                    }}
-                    whileHover={{ y: -4 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="surface-card-elevated min-w-[275px] w-[275px] h-[340px] p-6 flex flex-col justify-between snap-center cursor-pointer hover:border-[#FF6B00] relative overflow-hidden"
+
+              <div className="space-y-2.5">
+                {todaysPlan.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() =>
+                      setTodaysPlan((prev) =>
+                        prev.map((p) => (p.id === item.id ? { ...p, done: !p.done } : p))
+                      )
+                    }
+                    className="w-full flex items-center gap-3 text-left p-2.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] transition"
                   >
-                    <div
-                      className={`absolute top-0 left-0 right-0 h-1.5 ${
-                        i % 3 === 0
-                          ? 'bg-[#FF6B00]'
-                          : i % 3 === 1
-                          ? 'bg-[#10B981]'
-                          : 'bg-[#1A2332]'
+                    <span
+                      className={`w-5 h-5 rounded-full border flex items-center justify-center text-[11px] font-bold shrink-0 ${
+                        item.done
+                          ? 'bg-[#10B981] border-[#10B981] text-white'
+                          : 'border-[#9CA3AF] text-transparent'
                       }`}
-                    />
-                    <div className="pt-2">
-                      <span className="inline-flex items-center gap-1.5 text-[12px] font-medium bg-[#10B981]/10 text-[#10B981] px-2.5 py-0.5 rounded-[12px]">
-                        ✓ Mastered
-                      </span>
-                      <h2 className="type-h2 mt-3.5 mb-2 line-clamp-2">{v.title}</h2>
-                      <p className="type-body line-clamp-4">{v.notes}</p>
-                    </div>
-                    <div className="text-[12px] font-medium text-[#FF6B00] pt-3 border-t border-[#E5E7EB] dark:border-[#283548]">
-                      Read note →
-                    </div>
-                  </motion.div>
+                    >
+                      ✓
+                    </span>
+                    <span
+                      className={`text-[15px] ${
+                        item.done
+                          ? 'line-through text-[#9CA3AF]'
+                          : 'text-[#111827] dark:text-[#F9FAFB]'
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                  </button>
                 ))}
-              </motion.div>
-            )}
+              </div>
+
+              <button
+                onClick={() => {
+                  const nextTask = todaysPlan.find((t) => !t.done) || todaysPlan[0];
+                  if (nextTask.action === 'practice') {
+                    handleTabChange('practice');
+                  } else {
+                    const subj = SUBJECTS_DATA.find((s) => s.id === 'polity');
+                    const chap = subj.chapters.find((c) => c.id === nextTask.chapterId);
+                    handleTabChange('learn');
+                    setSelectedSubjectId('polity');
+                    if (chap) openLesson(chap);
+                  }
+                }}
+                className="w-full bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold py-3 rounded-[12px] text-[15px] transition shadow-sm"
+              >
+                Start Today's Plan →
+              </button>
+            </div>
+
+            {/* Quick Stats Strip */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="surface-card p-3.5 text-center">
+                <div className="text-[20px] font-bold text-[#111827] dark:text-white">
+                  🏆 {polityMasteredCount}
+                </div>
+                <div className="type-caption mt-0.5">Mastered</div>
+              </div>
+              <div className="surface-card p-3.5 text-center">
+                <div className="text-[20px] font-bold text-[#10B981]">📈 {avgScore}%</div>
+                <div className="type-caption mt-0.5">Accuracy</div>
+              </div>
+              <div className="surface-card p-3.5 text-center">
+                <div className="text-[20px] font-bold text-[#FF6B00]">🔥 {streakCount}</div>
+                <div className="type-caption mt-0.5">Streak</div>
+              </div>
+            </div>
+
+            {/* Motivational Nudge */}
+            <div className="surface-card p-4 bg-[#F9FAFB] dark:bg-[#1A2332] flex items-start gap-3">
+              <span className="text-xl shrink-0">💡</span>
+              <p className="type-body text-[#111827] dark:text-[#F9FAFB] font-medium">
+                "Pichle hafte se 15% improvement hua hai. Aise hi chalte raho!"
+              </p>
+            </div>
+
+            {/* Continue Learning Section */}
+            <div className="space-y-2.5">
+              <h3 className="type-h3">Jahan chhoda tha, wahan se shuru karo</h3>
+              <button
+                onClick={() => {
+                  const subj = SUBJECTS_DATA[0];
+                  const dpsp = subj.chapters.find((c) => c.id === 'directive-principles');
+                  handleTabChange('learn');
+                  setSelectedSubjectId('polity');
+                  if (dpsp) openLesson(dpsp);
+                }}
+                className="w-full surface-card-elevated p-4 text-left hover:border-[#FF6B00] transition space-y-2.5"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="type-caption">Indian Polity • Part IV</div>
+                    <div className="text-[16px] font-semibold text-[#111827] dark:text-white mt-0.5">
+                      Directive Principles — 60% complete →
+                    </div>
+                  </div>
+                  <span className="text-xl">📘</span>
+                </div>
+                <div className="w-full h-2 bg-[#E5E7EB] dark:bg-[#283548] rounded-full overflow-hidden">
+                  <div className="h-full bg-[#FF6B00] rounded-full" style={{ width: '60%' }} />
+                </div>
+              </button>
+            </div>
           </div>
         )}
 
-        {/* TAB 3: PRACTICE (Test Portal) */}
-        {activeTab === 'test' && (
-          <div className="min-h-full flex flex-col items-center justify-center animate-fade-in p-4">
-            {testState === 'idle' && (
-              <div className="surface-card-elevated p-8 sm:p-10 text-center space-y-5 max-w-sm w-full">
-                <div className="w-14 h-14 mx-auto rounded-[12px] bg-[#FF6B00]/10 text-[#FF6B00] flex items-center justify-center text-3xl">
-                  🎯
-                </div>
+        {/* ------------------------------------------------------------------- */}
+        {/* 2.2 LEARN SCREEN (REPLACES "VAULT")                                 */}
+        {/* ------------------------------------------------------------------- */}
+        {activeTab === 'learn' && (
+          <div className="max-w-xl mx-auto p-5 space-y-5 animate-fade-in">
+            {/* LEVEL 1: YOUR SUBJECTS */}
+            {!selectedSubjectId && (
+              <>
                 <div>
-                  <h1 className="type-h1">Ready to prove it?</h1>
-                  <p className="type-body mt-1.5">
-                    Generate a 10-question UPSC quiz based on your saved topics.
+                  <h1 className="type-h1">Your Subjects</h1>
+                  <p className="type-body mt-0.5">
+                    Structured UPSC syllabus with AI-powered notes & PYQs.
                   </p>
                 </div>
+
+                <div className="space-y-3">
+                  {SUBJECTS_DATA.map((subj) => {
+                    const masteredNum =
+                      subj.id === 'polity' ? Math.min(polityMasteredCount, subj.totalTopics) : 0;
+                    const pct = subj.totalTopics
+                      ? Math.round((masteredNum / subj.totalTopics) * 100)
+                      : 0;
+
+                    return (
+                      <button
+                        key={subj.id}
+                        onClick={() => setSelectedSubjectId(subj.id)}
+                        className="w-full surface-card p-4 text-left hover:border-[#FF6B00] transition space-y-2.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{subj.icon}</span>
+                            <div>
+                              <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
+                                {subj.name}
+                              </h3>
+                              <p className="type-caption">{subj.subtitle}</p>
+                            </div>
+                          </div>
+                          <span className="text-xs font-semibold text-[#FF6B00]">
+                            {subj.totalTopics
+                              ? `${masteredNum}/${subj.totalTopics} topics`
+                              : 'Updated daily'}{' '}
+                            →
+                          </span>
+                        </div>
+
+                        {subj.totalTopics && (
+                          <div className="w-full h-2 bg-[#E5E7EB] dark:bg-[#283548] rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-[#10B981] rounded-full transition-all"
+                              style={{ width: `${Math.max(pct, masteredNum > 0 ? 12 : 0)}%` }}
+                            />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* LEVEL 2: CHAPTERS LIST INSIDE SELECTED SUBJECT */}
+            {selectedSubjectId && !selectedLesson && (() => {
+              const activeSubject = SUBJECTS_DATA.find((s) => s.id === selectedSubjectId);
+              const chapters = getSubjectChapters(activeSubject);
+
+              return (
+                <>
+                  <button
+                    onClick={() => setSelectedSubjectId(null)}
+                    className="text-[13px] font-semibold text-[#FF6B00] hover:underline"
+                  >
+                    ← Back to Your Subjects
+                  </button>
+
+                  <div>
+                    <h1 className="type-h1">
+                      {activeSubject.icon} {activeSubject.name}
+                    </h1>
+                    <p className="type-body mt-0.5">Chapters — tap any topic to open lesson</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    {chapters.map((ch) => {
+                      const statusIcon =
+                        ch.status === 'mastered'
+                          ? '✅'
+                          : ch.status === 'in_progress'
+                          ? '🔵'
+                          : '⚪';
+                      const statusLabel =
+                        ch.status === 'mastered'
+                          ? 'Mastered'
+                          : ch.status === 'in_progress'
+                          ? `In Progress — ${ch.progress}%`
+                          : 'Not started';
+
+                      return (
+                        <button
+                          key={ch.id}
+                          onClick={() => openLesson(ch)}
+                          className="w-full surface-card p-4 text-left hover:border-[#FF6B00] transition flex items-center justify-between gap-3"
+                        >
+                          <div className="flex items-start gap-3">
+                            <span className="text-lg mt-0.5">{statusIcon}</span>
+                            <div>
+                              <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
+                                {ch.title}
+                              </h3>
+                              <span
+                                className={`type-caption font-medium ${
+                                  ch.status === 'mastered'
+                                    ? 'text-[#10B981]'
+                                    : ch.status === 'in_progress'
+                                    ? 'text-[#FF6B00]'
+                                    : ''
+                                }`}
+                              >
+                                {statusLabel}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-[#9CA3AF] text-sm">→</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              );
+            })()}
+
+            {/* LEVEL 3: AI-POWERED LESSON VIEW */}
+            {selectedLesson && (
+              <div className="space-y-4 animate-fade-in">
                 <button
-                  onClick={startTest}
-                  className="w-full bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold py-3.5 rounded-[12px] shadow-sm transition-colors text-[15px]"
+                  onClick={() => setSelectedLesson(null)}
+                  className="text-[13px] font-semibold text-[#FF6B00] hover:underline"
                 >
-                  Generate test
+                  ← Back to Chapters
                 </button>
+
+                <div className="surface-card-elevated p-6 space-y-5">
+                  <div>
+                    <span
+                      className={`inline-block text-[12px] font-medium px-2.5 py-0.5 rounded-[12px] mb-2 ${
+                        selectedLesson.status === 'mastered'
+                          ? 'bg-[#10B981]/10 text-[#10B981]'
+                          : 'bg-[#FF6B00]/10 text-[#FF6B00]'
+                      }`}
+                    >
+                      {selectedLesson.status === 'mastered' ? '✅ Mastered' : '🔵 Active Lesson'}
+                    </span>
+                    <h1 className="type-h1">{selectedLesson.title}</h1>
+                  </div>
+
+                  {/* Concept Explanation */}
+                  <div className="space-y-1.5">
+                    <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
+                      📌 Concept Explanation
+                    </h3>
+                    <p className="type-body">{selectedLesson.concept}</p>
+                  </div>
+
+                  {/* Key Points (Bulleted) */}
+                  <div className="space-y-2">
+                    <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
+                      🔑 Key Points
+                    </h3>
+                    <ul className="space-y-2">
+                      {selectedLesson.keyPoints.map((pt, idx) => (
+                        <li key={idx} className="flex items-start gap-2 type-body">
+                          <span className="text-[#FF6B00] font-bold">•</span>
+                          <span>{pt}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* AI Mentor Live Exam Tip */}
+                  {loadingLessonAI && (
+                    <div className="bg-[#F9FAFB] dark:bg-[#0F1724] p-3.5 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] type-caption">
+                      🤖 Fetching UPSC Mains/Prelims deep-dive notes...
+                    </div>
+                  )}
+                  {aiLessonExtra && (
+                    <div className="bg-[#F9FAFB] dark:bg-[#0F1724] p-4 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] space-y-1.5">
+                      <div className="text-[12px] font-semibold text-[#FF6B00]">
+                        🤖 AI Faculty Notes
+                      </div>
+                      <FormattedAIMessage text={aiLessonExtra} />
+                    </div>
+                  )}
+
+                  {/* PYQ Connections */}
+                  <div className="bg-[#1A2332] text-white p-4 rounded-[12px] space-y-1">
+                    <div className="text-[12px] font-semibold text-[#FF6B00]">
+                      📝 PYQ Connections
+                    </div>
+                    <p className="text-[14px] text-white/90">{selectedLesson.pyq}</p>
+                  </div>
+
+                  {/* Lesson Action Buttons */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <button
+                      onClick={() => {
+                        saveTopicToMastered(selectedLesson.title, selectedLesson.concept);
+                        setSelectedLesson((prev) => ({ ...prev, status: 'mastered' }));
+                      }}
+                      className="w-full bg-[#10B981] hover:bg-[#0EA572] text-white font-semibold py-3 rounded-[12px] text-[14px] transition"
+                    >
+                      ✅ Mark as Mastered
+                    </button>
+                    <button
+                      onClick={() => {
+                        const topic = selectedLesson.title;
+                        setIsChatOpen(true);
+                        sendChatMessage(`Explain ${topic} for UPSC Prelims and Mains with landmark cases.`);
+                      }}
+                      className="w-full bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold py-3 rounded-[12px] text-[14px] transition"
+                    >
+                      Ask a doubt about this topic 💬
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------------- */}
+        {/* 2.3 PRACTICE SCREEN (REPLACES "READY TO PROVE IT?")                 */}
+        {/* ------------------------------------------------------------------- */}
+        {activeTab === 'practice' && (
+          <div className="max-w-xl mx-auto p-5 animate-fade-in">
+            {testState === 'idle' && (
+              <div className="space-y-5">
+                <div>
+                  <h1 className="type-h1">✍️ Practice Zone</h1>
+                  <p className="type-body italic mt-1">
+                    "Revision ke bina preparation adhuri hai"
+                  </p>
+                </div>
+
+                {/* Card 1: Smart Quiz */}
+                <div className="surface-card-elevated p-5 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h2 className="type-h2">🎯 Smart Quiz</h2>
+                      <p className="type-body mt-1">
+                        AI picks from your weak areas automatically
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleSmartQuiz}
+                    className="w-full bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold py-3 rounded-[12px] text-[15px] transition shadow-sm"
+                  >
+                    Start Smart Quiz →
+                  </button>
+                </div>
+
+                {/* Card 2: Topic-wise Practice */}
+                <div className="surface-card p-5 space-y-3">
+                  <div>
+                    <h2 className="type-h2">📚 Topic-wise Practice</h2>
+                    <p className="type-body mt-1">Choose a subject & topic</p>
+                  </div>
+                  <button
+                    onClick={() => setTestState('topic_picker')}
+                    className="w-full bg-[#1A2332] hover:bg-[#243044] text-white font-semibold py-3 rounded-[12px] text-[15px] transition"
+                  >
+                    Select Topic →
+                  </button>
+                </div>
+
+                {/* Card 3: Previous Year Questions */}
+                <div className="surface-card p-5 space-y-3">
+                  <div>
+                    <h2 className="type-h2">📝 Previous Year Questions</h2>
+                    <p className="type-body mt-1">Solve actual UPSC questions</p>
+                  </div>
+                  <button
+                    onClick={handlePyqQuiz}
+                    className="w-full bg-[#1A2332] hover:bg-[#243044] text-white font-semibold py-3 rounded-[12px] text-[15px] transition"
+                  >
+                    Start PYQs →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Topic-wise Picker */}
+            {testState === 'topic_picker' && (
+              <div className="space-y-4 animate-fade-in">
+                <button
+                  onClick={() => setTestState('idle')}
+                  className="text-[13px] font-semibold text-[#FF6B00] hover:underline"
+                >
+                  ← Back to Practice Zone
+                </button>
+                <h2 className="type-h2">Choose a topic to practice</h2>
+                <div className="space-y-2.5">
+                  {SUBJECTS_DATA.flatMap((s) =>
+                    s.chapters.map((c) => ({ ...c, subjectName: s.name, icon: s.icon }))
+                  ).map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => startQuizWithTopics(item.title, `${item.title} Quiz`)}
+                      className="w-full surface-card p-4 text-left hover:border-[#FF6B00] transition flex items-center justify-between"
+                    >
+                      <div>
+                        <div className="type-caption">
+                          {item.icon} {item.subjectName}
+                        </div>
+                        <div className="text-[15px] font-semibold text-[#111827] dark:text-white mt-0.5">
+                          {item.title}
+                        </div>
+                      </div>
+                      <span className="text-[#FF6B00] font-semibold text-sm">Start →</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
             {testState === 'loading' && (
-              <div className="surface-card px-8 py-6 text-center space-y-2.5">
-                <div className="w-6 h-6 border-2 border-[#FF6B00] border-t-transparent rounded-full animate-spin mx-auto" />
-                <h3 className="type-h3">Constructing challenge...</h3>
+              <div className="surface-card-elevated p-10 text-center space-y-3 mt-12">
+                <div className="w-7 h-7 border-2 border-[#FF6B00] border-t-transparent rounded-full animate-spin mx-auto" />
+                <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
+                  Constructing {quizTitle}...
+                </h3>
+                <p className="type-caption">Generating 10 UPSC-standard conceptual MCQs</p>
               </div>
             )}
 
             {testState === 'active' && (
-              <div className="w-full max-w-md animate-fade-in">
-                <div className="flex justify-between type-caption mb-3 font-medium">
+              <div className="animate-fade-in space-y-5">
+                <div className="flex justify-between type-caption font-medium">
                   <span>
                     Question {currentQIndex + 1} of {quiz.length}
                   </span>
                   <span className="text-[#10B981] font-semibold">Score: {score}</span>
                 </div>
 
-                <div className="surface-card-elevated p-6 sm:p-7 mb-5 min-h-[130px] flex items-center">
-                  <h3 className="type-h3 text-[#111827] dark:text-white">
+                <div className="surface-card-elevated p-6 min-h-[130px] flex items-center">
+                  <h3 className="type-h3 text-[#111827] dark:text-white font-semibold">
                     {quiz[currentQIndex].question}
                   </h3>
                 </div>
@@ -899,7 +1722,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                       finishTest();
                     }
                   }}
-                  className={`mt-6 w-full py-3.5 rounded-[12px] font-semibold text-[15px] transition-all ${
+                  className={`w-full py-3.5 rounded-[12px] font-semibold text-[15px] transition-all ${
                     selectedOption
                       ? 'bg-[#FF6B00] hover:bg-[#E66000] text-white shadow-sm'
                       : 'bg-[#E5E7EB] dark:bg-[#283548] text-[#9CA3AF] cursor-not-allowed'
@@ -911,76 +1734,171 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
             )}
 
             {testState === 'result' && (
-              <div className="surface-card-elevated p-8 sm:p-10 text-center space-y-5 max-w-sm w-full">
-                <h2 className="type-h2">Test result</h2>
+              <div className="surface-card-elevated p-8 text-center space-y-5 mt-6">
+                <h2 className="type-h2">Quiz Completed</h2>
                 <div className="type-stat">
                   {score}{' '}
                   <span className="text-[18px] text-[#9CA3AF] font-normal">/ {quiz.length}</span>
                 </div>
+                <div className="inline-block bg-[#10B981]/10 text-[#10B981] text-[12px] font-semibold px-3 py-1 rounded-[12px]">
+                  Improvement detected! 📈
+                </div>
                 <p className="type-body">
-                  Check Progress for your detailed AI SWOT breakdown.
+                  Check Progress for your detailed AI SWOT analysis.
                 </p>
                 <button
                   onClick={() => setTestState('idle')}
                   className="w-full bg-[#1A2332] hover:bg-[#243044] text-white font-semibold py-3 rounded-[12px] text-[15px] transition"
                 >
-                  Done
+                  Back to Practice Zone
                 </button>
               </div>
             )}
           </div>
         )}
 
-        {/* TAB 4: PROGRESS (Analytics) */}
-        {activeTab === 'analytics' && (
-          <div className="space-y-5 animate-fade-in max-w-lg mx-auto p-5">
-            <h1 className="type-h1">Performance</h1>
+        {/* ------------------------------------------------------------------- */}
+        {/* 2.4 PROGRESS SCREEN (REPLACES "PERFORMANCE")                        */}
+        {/* ------------------------------------------------------------------- */}
+        {activeTab === 'progress' && (
+          <div className="max-w-xl mx-auto p-5 space-y-5 animate-fade-in">
+            <h1 className="type-h1">📊 Your Progress</h1>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="surface-card p-6 text-center">
-                {/* Stats: Inter Bold, 32px, Primary color (#FF6B00) */}
-                <div className="type-stat mb-1">{vault.length}</div>
-                <div className="type-caption">Topics mastered</div>
+            {/* This Week Trajectory Card */}
+            <div className="surface-card-elevated p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
+                  This Week
+                </h3>
+                <span className="text-[12px] font-bold text-[#10B981] bg-[#10B981]/10 px-2.5 py-0.5 rounded-[12px]">
+                  72% (+15% ↑)
+                </span>
               </div>
-              <div className="surface-card p-6 text-center">
-                <div className="type-stat mb-1">{avgScore}%</div>
-                <div className="type-caption">Average accuracy</div>
+              <div className="w-full h-2.5 bg-[#E5E7EB] dark:bg-[#283548] rounded-full overflow-hidden">
+                <div className="h-full bg-[#10B981] rounded-full" style={{ width: '72%' }} />
+              </div>
+              <p className="type-caption text-[#10B981] font-medium">
+                "Pichle hafte se better!"
+              </p>
+            </div>
+
+            {/* 2-Column Accuracy & Avg/day */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="surface-card p-5 text-center">
+                <div className="type-stat">📈 {avgScore}%</div>
+                <div className="type-caption mt-1">Accuracy</div>
+              </div>
+              <div className="surface-card p-5 text-center">
+                <div className="type-stat text-[#1A2332] dark:text-white">⏱️ 2.1hr</div>
+                <div className="type-caption mt-1">Avg/day</div>
               </div>
             </div>
 
-            <div className="surface-card p-6">
-              <h3 className="type-h3 mb-4">Recent tests (tap for SWOT)</h3>
-              <div className="space-y-3">
-                {examResults.length === 0 ? (
-                  <p className="type-caption">No test data yet.</p>
-                ) : (
-                  examResults.slice(0, 5).map((res, i) => (
-                    <div
-                      key={i}
-                      onClick={() => setViewingSwot(res)}
-                      className="flex justify-between items-center pb-3 border-b border-[#E5E7EB] dark:border-[#283548] last:border-0 cursor-pointer hover:bg-[#F9FAFB] dark:hover:bg-[#243044] p-2 rounded-[12px] transition"
-                    >
-                      <div>
-                        <div className="text-[15px] text-[#111827] dark:text-white font-medium">
-                          {res.topics_covered || "General test"}
-                        </div>
-                        <div className="type-caption">
-                          {new Date(res.created_at).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <span
-                        className={`font-semibold px-3 py-1 rounded-[12px] text-[12px] ${
-                          res.score >= 5
-                            ? 'bg-[#10B981]/10 text-[#10B981]'
-                            : 'bg-[#EF4444]/10 text-[#EF4444]'
-                        }`}
-                      >
-                        {res.score}/{res.total_questions}
-                      </span>
-                    </div>
-                  ))
-                )}
+            {/* Strong Topics */}
+            <div className="surface-card p-5 space-y-2.5">
+              <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
+                💪 Strong Topics
+              </h3>
+              <div className="space-y-2 type-body">
+                <div className="flex justify-between items-center">
+                  <span>• Source of Authority</span>
+                  <span className="text-[12px] font-semibold text-[#10B981]">85%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>• Citizenship</span>
+                  <span className="text-[12px] font-semibold text-[#10B981]">78%</span>
+                </div>
               </div>
+            </div>
+
+            {/* Needs Work */}
+            <div className="surface-card p-5 space-y-3">
+              <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
+                🎯 Needs Work
+              </h3>
+              <div className="space-y-2 type-body">
+                <div className="flex justify-between items-center">
+                  <span>• Fundamental Rights</span>
+                  <span className="text-[12px] font-semibold text-[#EF4444]">32%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>• Preamble</span>
+                  <span className="text-[12px] font-semibold text-[#EF4444]">25%</span>
+                </div>
+              </div>
+              <button
+                onClick={() =>
+                  startQuizWithTopics(
+                    'Fundamental Rights, Preamble of India',
+                    'Weak Topics Revision'
+                  )
+                }
+                className="w-full bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold py-3 rounded-[12px] text-[14px] transition"
+              >
+                Practice Weak Topics →
+              </button>
+            </div>
+
+            {/* Recent Quizzes (Trajectory-focused) */}
+            <div className="space-y-3">
+              <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
+                Recent Quizzes
+              </h3>
+
+              {examResults.length === 0 ? (
+                <div className="surface-card p-5 type-caption">
+                  Take your first quiz in Practice to see your growth trajectory!
+                </div>
+              ) : (
+                examResults.slice(0, 5).map((res, i) => {
+                  const pct = Math.round((res.score / res.total_questions) * 100);
+                  const prevRes = examResults[i + 1];
+                  const improved = prevRes ? res.score >= prevRes.score : true;
+
+                  return (
+                    <div key={i} className="surface-card p-4 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="text-[15px] font-semibold text-[#111827] dark:text-white">
+                          {res.topics_covered || 'Polity Mix'} •{' '}
+                          <span className="type-caption font-normal">
+                            {new Date(res.created_at).toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                            })}
+                          </span>
+                        </div>
+                        {improved && (
+                          <span className="text-[11px] font-semibold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded-[12px]">
+                            Improvement detected! 📈
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="text-[13px] font-bold text-[#111827] dark:text-white">
+                          {res.score}/{res.total_questions}
+                        </span>
+                        <div className="flex-1 h-2 bg-[#E5E7EB] dark:bg-[#283548] rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${
+                              pct >= 50 ? 'bg-[#10B981]' : 'bg-[#FF6B00]'
+                            }`}
+                            style={{ width: `${Math.max(pct, 10)}%` }}
+                          />
+                        </div>
+                        <span className="type-caption font-semibold">{pct}%</span>
+                      </div>
+
+                      <button
+                        onClick={() => setViewingSwot(res)}
+                        className="text-[13px] font-semibold text-[#FF6B00] hover:underline"
+                      >
+                        View Analysis →
+                      </button>
+                    </div>
+                  );
+                })
+              )}
             </div>
 
             {viewingSwot && (
@@ -1005,12 +1923,12 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
           </div>
         )}
 
-        {/* TAB 5: LEADERBOARD */}
+        {/* TAB 5: LEADERBOARD (HALL OF FAME) */}
         {activeTab === 'leaderboard' && (
-          <div className="p-5 max-w-lg mx-auto space-y-6 animate-fade-in">
-            <div className="text-center">
-              <h1 className="type-h1">Hall of fame</h1>
-              <p className="type-body mt-1">Top scholars globally</p>
+          <div className="p-5 max-w-xl mx-auto space-y-5 animate-fade-in">
+            <div>
+              <h1 className="type-h1">🏆 Hall of Fame</h1>
+              <p className="type-body mt-0.5">Top UPSC scholars on PolicyPath</p>
             </div>
             <div className="surface-card overflow-hidden">
               {leaderboard.map((user, index) => (
@@ -1034,36 +1952,34 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                     </div>
                     <div>
                       <div className="font-semibold text-[15px] text-[#111827] dark:text-white">
-                        {user.username}
+                        {user.full_name || user.username || 'Scholar'}
                       </div>
                       <div className="type-caption flex gap-2.5 mt-0.5">
-                        <span>🔥 {user.streak}d streak</span>
-                        <span>📚 {user.topics_mastered} mastered</span>
+                        <span>🔥 {user.streak || 1}d streak</span>
+                        <span>📚 {user.topics_mastered || 0} mastered</span>
                       </div>
                     </div>
                   </div>
-                  <div className="text-[15px] font-bold text-[#10B981]">{user.xp} XP</div>
+                  <div className="text-[15px] font-bold text-[#10B981]">{user.xp || 0} XP</div>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* TAB 6: PROFILE */}
+          {/* TAB 6: STUDENT ID PROFILE */}
         {activeTab === 'profile' && (
-          <div className="p-5 max-w-lg mx-auto animate-fade-in">
-            <h1 className="type-h1 mb-5 text-center">Student ID</h1>
+          <div className="p-5 max-w-xl mx-auto animate-fade-in">
+            <h1 className="type-h1 mb-5">📋 My Student ID</h1>
             <div className="surface-card-elevated p-6 mb-6">
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 bg-[#1A2332] text-white rounded-[12px] flex items-center justify-center text-2xl">
-                  🎓
+                <div className="w-14 h-14 bg-[#1A2332] text-white rounded-[12px] flex items-center justify-center text-2xl font-bold">
+                  {firstName.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h2 className="type-h2">
-                    {userProfile?.full_name || session.user.email.split('@')[0]}
-                  </h2>
+                  <h2 className="type-h2">{displayName}</h2>
                   <span className="inline-block mt-1 text-[12px] font-medium bg-[#10B981]/10 text-[#10B981] px-2.5 py-0.5 rounded-[12px]">
-                    Scholar • {userProfile?.xp || 0} XP
+                    Level {currentLevel}: {levelTitle} • {totalXP} XP
                   </span>
                 </div>
               </div>
@@ -1150,45 +2066,228 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         )}
       </main>
 
-      {/* FLOATING "Ask Doubt 💬" FAB BUTTON (Bottom Right) */}
-      {activeTab !== 'home' && (
+      {/* ===================================================================== */}
+      {/* FLOATING "Ask Doubt 💬" FAB BUTTON (BOTTOM RIGHT)                     */}
+      {/* ===================================================================== */}
+      {!isChatOpen && (
         <button
-          onClick={handleAskDoubtFab}
-          className="fixed bottom-22 right-4 z-40 bg-[#FF6B00] hover:bg-[#E66000] active:scale-95 text-white font-semibold text-[14px] px-4 py-3 rounded-full shadow-lg flex items-center gap-2 transition-all"
+          onClick={() => {
+            setIsChatOpen(true);
+            setTimeout(() => chatInputRef.current?.focus(), 120);
+          }}
+          className="fixed bottom-20 right-4 z-40 bg-[#FF6B00] hover:bg-[#E66000] active:scale-95 text-white font-semibold text-[14px] px-4 py-3 rounded-full shadow-lg flex items-center gap-2 transition-all"
         >
           <span>Ask Doubt 💬</span>
         </button>
       )}
 
-      {/* 3. INPUT AREA (Home only) */}
-      {activeTab === 'home' && (
-        <div className="fixed bottom-22 w-full px-4 max-w-2xl mx-auto left-0 right-0 z-40">
-          <div className="surface-card-elevated p-1.5 flex items-center">
-            <input
-              ref={chatInputRef}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ask about Article 21, Preamble..."
-              className="flex-1 bg-transparent border-none px-3.5 py-2 text-[15px] text-[#111827] dark:text-white focus:outline-none placeholder-[#9CA3AF]"
-              onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
-              disabled={loading}
-            />
+      {/* ===================================================================== */}
+      {/* 2.5 AI CHAT (COMPLETE REDESIGN — POLICYPATH MENTOR DRAWER)            */}
+      {/* ===================================================================== */}
+      <AnimatePresence>
+        {isChatOpen && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+            className="fixed inset-0 z-50 bg-[#FFFFFF] dark:bg-[#0F1724] flex flex-col"
+          >
+            {/* Chat Header */}
+            <div className="px-5 py-3.5 bg-[#FFFFFF] dark:bg-[#1A2332] border-b border-[#E5E7EB] dark:border-[#283548] flex items-center justify-between">
+              <div>
+                <h2 className="type-h2 flex items-center gap-2">
+                  <span>🤖</span>
+                  <span>PolicyPath Mentor</span>
+                </h2>
+                <p className="type-caption">"Main hoon aapka AI teacher"</p>
+              </div>
+              <button
+                onClick={() => setIsChatOpen(false)}
+                className="px-3 py-1.5 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] text-[12px] font-semibold text-[#111827] dark:text-white hover:border-[#FF6B00] transition"
+              >
+                Close ✕
+              </button>
+            </div>
+
+            {/* Chat Messages Feed */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 max-w-2xl w-full mx-auto">
+              {/* Initial Welcome + Quick Options Card */}
+              <div className="surface-card-elevated p-5 space-y-3">
+                <div className="text-[12px] font-bold text-[#FF6B00]">AI Mentor</div>
+                <p className="type-body text-[#111827] dark:text-white font-medium">
+                  Namaste! 🙏
+                  <br />
+                  Aaj kya padhna hai?
+                </p>
+                <div className="pt-1">
+                  <div className="type-caption mb-2">Quick options:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      'Fundamental Rights',
+                      'Continue Polity',
+                      'Explain a concept',
+                      'Solve a PYQ',
+                    ].map((chip) => (
+                      <button
+                        key={chip}
+                        onClick={() => sendChatMessage(chip)}
+                        className="px-3 py-1.5 rounded-[12px] bg-[#F9FAFB] dark:bg-[#0F1724] border border-[#E5E7EB] dark:border-[#283548] hover:border-[#FF6B00] text-[13px] font-medium text-[#111827] dark:text-white transition"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Conversation History */}
+              {messages.map((m, i) => (
+                <div
+                  key={i}
+                  className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
+                >
+                  {m.role === 'user' ? (
+                    <div className="max-w-[82%] bg-[#1A2332] text-white p-4 rounded-[12px] shadow-sm">
+                      <div className="text-[11px] font-semibold text-white/60 mb-1">You</div>
+                      <div className="text-[15px] leading-[1.6] whitespace-pre-wrap">{m.text}</div>
+                    </div>
+                  ) : (
+                    <div className="max-w-[92%] surface-card-elevated p-5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[12px] font-bold text-[#FF6B00]">AI Mentor</span>
+                        {m.saved && (
+                          <span className="text-[11px] font-semibold text-[#10B981]">
+                            ✓ Saved to Learn
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Clean Markdown Renderer */}
+                      <FormattedAIMessage text={m.text} />
+
+                      {/* Action Buttons After Each AI Response */}
+                      <div className="pt-3 border-t border-[#E5E7EB] dark:border-[#283548] flex flex-wrap gap-2">
+                        <button
+                          onClick={() =>
+                            saveTopicToMastered(
+                              m.topicHint || 'Constitutional Concept',
+                              m.text
+                            )
+                          }
+                          className="px-3 py-1.5 rounded-[12px] bg-[#10B981]/10 hover:bg-[#10B981]/20 text-[#10B981] text-[12px] font-semibold transition"
+                        >
+                          Save to Notes 📌
+                        </button>
+                        <button
+                          onClick={() =>
+                            startQuizWithTopics(
+                              m.topicHint || m.text.slice(0, 80),
+                              'Quick Topic Quiz'
+                            )
+                          }
+                          className="px-3 py-1.5 rounded-[12px] bg-[#FF6B00]/10 hover:bg-[#FF6B00]/20 text-[#FF6B00] text-[12px] font-semibold transition"
+                        >
+                          Quiz me on this ✍️
+                        </button>
+                        <button
+                          onClick={() =>
+                            sendChatMessage(
+                              "Explain this more simply in easy language with a practical Indian example."
+                            )
+                          }
+                          className="px-3 py-1.5 rounded-[12px] bg-[#F9FAFB] dark:bg-[#0F1724] border border-[#E5E7EB] dark:border-[#283548] hover:border-[#1A2332] text-[#374151] dark:text-[#D1D5DB] text-[12px] font-medium transition"
+                        >
+                          Explain more simply 🔄
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Typing Indicator */}
+              {loading && (
+                <div className="flex justify-start">
+                  <div className="surface-card px-4 py-3 flex items-center gap-2.5 text-[13px] font-medium text-[#6B7280] dark:text-[#9CA3AF]">
+                    <span className="w-2 h-2 rounded-full bg-[#FF6B00] animate-bounce" />
+                    <span>PolicyPath soch raha hai... 🤔</span>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} className="h-4" />
+            </div>
+
+            {/* Bottom Input Bar with Voice (🎤) & Send (➤) */}
+            <div className="p-3.5 bg-[#FFFFFF] dark:bg-[#1A2332] border-t border-[#E5E7EB] dark:border-[#283548]">
+              <div className="max-w-2xl mx-auto flex items-center gap-2">
+                <input
+                  ref={chatInputRef}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && sendChatMessage()}
+                  placeholder={isListening ? "Listening... speak now" : "Type or speak..."}
+                  disabled={loading}
+                  className="flex-1 bg-[#F9FAFB] dark:bg-[#0F1724] border border-[#E5E7EB] dark:border-[#283548] rounded-[12px] px-4 py-3 text-[15px] text-[#111827] dark:text-white focus:outline-none focus:border-[#FF6B00] placeholder-[#9CA3AF]"
+                />
+                <button
+                  type="button"
+                  onClick={handleVoiceInput}
+                  aria-label="Voice input"
+                  className={`w-11 h-11 rounded-[12px] border flex items-center justify-center text-lg transition ${
+                    isListening
+                      ? 'bg-[#EF4444] border-[#EF4444] text-white animate-pulse'
+                      : 'bg-[#F9FAFB] dark:bg-[#0F1724] border-[#E5E7EB] dark:border-[#283548] text-[#111827] dark:text-white hover:border-[#FF6B00]'
+                  }`}
+                >
+                  🎤
+                </button>
+                <button
+                  type="button"
+                  onClick={() => sendChatMessage()}
+                  disabled={loading || !query.trim()}
+                  aria-label="Send message"
+                  className={`w-11 h-11 rounded-[12px] flex items-center justify-center font-bold text-base transition ${
+                    loading || !query.trim()
+                      ? 'bg-[#E5E7EB] dark:bg-[#283548] text-[#9CA3AF]'
+                      : 'bg-[#FF6B00] hover:bg-[#E66000] text-white'
+                  }`}
+                >
+                  ➤
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* HELP & FEEDBACK MODAL */}
+      {showHelpModal && (
+        <div className="fixed inset-0 z-[70] bg-[#111827]/60 flex items-center justify-center p-4 animate-fade-in">
+          <div className="surface-card-elevated w-full max-w-sm p-6 relative space-y-3">
             <button
-              onClick={handleAsk}
-              disabled={loading || !query.trim()}
-              className={`w-10 h-10 rounded-[12px] flex items-center justify-center font-bold transition-colors ${
-                loading || !query.trim()
-                  ? 'bg-[#F9FAFB] dark:bg-[#0F1724] text-[#9CA3AF]'
-                  : 'bg-[#FF6B00] hover:bg-[#E66000] text-white'
-              }`}
+              onClick={() => setShowHelpModal(false)}
+              className="absolute top-4 right-4 text-[#9CA3AF] hover:text-[#111827] dark:hover:text-white font-bold"
             >
-              {loading ? '●' : '↑'}
+              ✕
+            </button>
+            <h2 className="type-h2">❓ Help & Feedback</h2>
+            <p className="type-body">
+              Have a suggestion or found a bug? Tap "Ask Doubt 💬" anytime to ask UPSC doubts, or reach out to the PolicyPath team.
+            </p>
+            <button
+              onClick={() => setShowHelpModal(false)}
+              className="w-full bg-[#1A2332] text-white font-semibold py-2.5 rounded-[12px] text-[14px]"
+            >
+              Got it
             </button>
           </div>
         </div>
       )}
 
-      {/* 4. 1.3 NEW BOTTOM NAVIGATION (4 Tabs with Labels: Home | Learn | Practice | Progress) */}
+      {/* ===================================================================== */}
+      {/* 1.3 BOTTOM NAVIGATION (4 LABELED TABS: Home | Learn | Practice | Progress) */}
+      {/* ===================================================================== */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#FFFFFF] dark:bg-[#1A2332] border-t border-[#E5E7EB] dark:border-[#283548] px-2 py-2">
         <div className="max-w-lg mx-auto grid grid-cols-4 gap-1">
           {navTabs.map((tab) => {
@@ -1216,25 +2315,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
           })}
         </div>
       </nav>
-
-      {/* 5. READING MODAL */}
-      {selectedArticle && (
-        <div className="fixed inset-0 z-[60] bg-[#111827]/60 flex items-center justify-center p-4 animate-fade-in">
-          <div className="surface-card-elevated w-full max-w-lg max-h-[80vh] p-7 overflow-y-auto relative">
-            <button
-              onClick={() => setSelectedArticle(null)}
-              className="absolute top-5 right-5 bg-[#F9FAFB] dark:bg-[#0F1724] border border-[#E5E7EB] dark:border-[#283548] w-8 h-8 rounded-[12px] flex items-center justify-center text-[#6B7280] hover:text-[#111827] dark:hover:text-white font-bold"
-            >
-              ✕
-            </button>
-            <span className="inline-block text-[12px] font-medium bg-[#10B981]/10 text-[#10B981] px-2.5 py-0.5 rounded-[12px] mb-3">
-              Mastered note
-            </span>
-            <h1 className="type-h1 mb-4">{selectedArticle.title}</h1>
-            <div className="type-body whitespace-pre-wrap">{selectedArticle.notes}</div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
