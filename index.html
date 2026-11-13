@@ -16,8 +16,42 @@
 
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
+
+    <!-- Browser Theme Colors (Light & Dark Mode) -->
+    <meta
+      name="theme-color"
+      content="#FFFFFF"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#1A2332"
+      media="(prefers-color-scheme: dark)"
+    />
+
+    <!-- Clean Civic Typography (Inter for UI, Merriweather for Constitutional Headings) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@700;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Prevent Theme Flash Before React Mounts -->
+    <script>
+      (function () {
+        try {
+          const savedTheme = localStorage.getItem("pp_theme");
+          if (savedTheme === "dark") {
+            document.documentElement.classList.add("dark");
+          } else {
+            document.documentElement.classList.remove("dark");
+          }
+        } catch (e) {}
+      })();
+    </script>
 
     <!-- SEO -->
     <title>PolicyPath AI | AI-Powered Constitution Mentor</title>
@@ -77,7 +111,7 @@
     </script>
   </head>
 
-  <body>
+  <body class="bg-[#FFFFFF] text-[#111827] antialiased selection:bg-[#FF6B00]/15 selection:text-[#FF6B00]">
     <div id="root"></div>
 
     <script
