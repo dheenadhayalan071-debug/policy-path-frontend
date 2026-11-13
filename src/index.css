@@ -1,32 +1,66 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
-/* --- 1. THE "OCEAN & CLOUD" ANIMATION --- */
-/* Replacing Purple/Black with your Premium Blue Palette */
-@keyframes gradientWave {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+/* --- 1. THEME TOKENS (Tailwind v4) --- */
+@theme {
+  --font-serif: "Merriweather", Georgia, serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Brand & Semantic Palette */
+  --color-saffron: #FF6B00;
+  --color-saffron-hover: #E66000;
+  --color-navy: #1A2332;
+  --color-emerald: #10B981;
+  --color-warm-red: #EF4444;
+
+  /* Text Hierarchy */
+  --color-ink-primary: #111827;
+  --color-ink-secondary: #6B7280;
+  --color-ink-tertiary: #9CA3AF;
 }
 
-.animate-wave {
-  /* The "Power Move" Gradient: Ocean Blue -> Deep Navy -> Cloudy Sky */
-  background: linear-gradient(-45deg, #2872A1, #154360, #1A5276, #CBDDE9);
-  background-size: 400% 400%;
-  animation: gradientWave 15s ease infinite;
+/* --- 2. CSS VARIABLES FOR LIGHT & DARK MODE --- */
+:root {
+  --bg-page: #FFFFFF;
+  --bg-subtle: #F9FAFB;
+  --bg-card: #FFFFFF;
+  --border-card: #E5E7EB;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --text-tertiary: #9CA3AF;
+  --shadow-elevation-1: 0 1px 3px rgba(17, 24, 39, 0.06), 0 1px 2px rgba(17, 24, 39, 0.04);
+  --shadow-elevation-2: 0 4px 12px rgba(17, 24, 39, 0.08), 0 2px 4px rgba(17, 24, 39, 0.04);
 }
 
-/* --- 2. GLASSMORPHISM UTILITIES (The "Frosty" Look) --- */
-/* Apply this class to cards to make them look like frosted glass */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+html.dark {
+  --bg-page: #0F1724;
+  --bg-subtle: #141D2B;
+  --bg-card: #1A2332;
+  --border-card: #283548;
+  --text-primary: #F9FAFB;
+  --text-secondary: #9CA3AF;
+  --text-tertiary: #6B7280;
+  --shadow-elevation-1: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-elevation-2: 0 6px 16px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
-/* --- 3. CAROUSEL UTILITIES (For the Vault Swipe) --- */
-/* Hides the scrollbar but allows swiping */
+/* --- 3. CLEAN SURFACE CARD UTILITIES (12px Radius, Elevation 1-2) --- */
+.surface-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  box-shadow: var(--shadow-elevation-1);
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.surface-card-elevated {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  box-shadow: var(--shadow-elevation-2);
+}
+
+/* --- 4. CAROUSEL UTILITIES (For the Vault Swipe) --- */
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -35,32 +69,23 @@
   scrollbar-width: none;
 }
 
-/* --- 4. THEME CONFIGURATION --- */
-@theme {
-  /* Using "Cinzel" for that Constitution feel (Answer 4B) */
-  --font-serif: "Cinzel", serif;
-  --font-sans: "Inter", sans-serif;
-  
-  /* Your Custom Colors */
-  --color-ocean: #2872A1;
-  --color-cloud: #CBDDE9;
-}
-
 /* --- 5. GLOBAL STYLES --- */
 body {
   font-family: var(--font-sans);
-  color: white;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
   margin: 0;
   padding: 0;
   overflow: hidden; /* Prevents scroll bounce on mobile */
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Smooth Fade In Animation */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.5s ease-out forwards;
+  animation: fadeIn 0.35s ease-out forwards;
 }
