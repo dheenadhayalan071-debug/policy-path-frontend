@@ -1,9 +1,9 @@
+
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* --- 1. THEME TOKENS (Tailwind v4) --- */
 @theme {
-  --font-serif: "Merriweather", Georgia, serif;
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* Brand & Semantic Palette */
@@ -12,11 +12,6 @@
   --color-navy: #1A2332;
   --color-emerald: #10B981;
   --color-warm-red: #EF4444;
-
-  /* Text Hierarchy */
-  --color-ink-primary: #111827;
-  --color-ink-secondary: #6B7280;
-  --color-ink-tertiary: #9CA3AF;
 }
 
 /* --- 2. CSS VARIABLES FOR LIGHT & DARK MODE --- */
@@ -25,9 +20,10 @@
   --bg-subtle: #F9FAFB;
   --bg-card: #FFFFFF;
   --border-card: #E5E7EB;
-  --text-primary: #111827;
-  --text-secondary: #6B7280;
-  --text-tertiary: #9CA3AF;
+  --text-heading: #111827;
+  --text-subhead: #374151;
+  --text-body: #4B5563;
+  --text-caption: #9CA3AF;
   --shadow-elevation-1: 0 1px 3px rgba(17, 24, 39, 0.06), 0 1px 2px rgba(17, 24, 39, 0.04);
   --shadow-elevation-2: 0 4px 12px rgba(17, 24, 39, 0.08), 0 2px 4px rgba(17, 24, 39, 0.04);
 }
@@ -37,14 +33,71 @@ html.dark {
   --bg-subtle: #141D2B;
   --bg-card: #1A2332;
   --border-card: #283548;
-  --text-primary: #F9FAFB;
-  --text-secondary: #9CA3AF;
-  --text-tertiary: #6B7280;
+  --text-heading: #F9FAFB;
+  --text-subhead: #E5E7EB;
+  --text-body: #D1D5DB;
+  --text-caption: #9CA3AF;
   --shadow-elevation-1: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
   --shadow-elevation-2: 0 6px 16px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
-/* --- 3. CLEAN SURFACE CARD UTILITIES (12px Radius, Elevation 1-2) --- */
+/* --- 3. 1.2 TYPOGRAPHY SYSTEM --- */
+.type-brand {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.type-h1 {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.3;
+  color: var(--text-heading);
+}
+
+.type-h2 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.35;
+  color: var(--text-heading);
+}
+
+.type-h3 {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--text-subhead);
+}
+
+.type-body {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-body);
+}
+
+.type-caption {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-caption);
+}
+
+.type-stat {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1.15;
+  color: #FF6B00;
+}
+
+/* --- 4. CLEAN SURFACE CARD UTILITIES (12px Radius, Elevation 1-2) --- */
 .surface-card {
   background-color: var(--bg-card);
   border: 1px solid var(--border-card);
@@ -60,7 +113,7 @@ html.dark {
   box-shadow: var(--shadow-elevation-2);
 }
 
-/* --- 4. CAROUSEL UTILITIES (For the Vault Swipe) --- */
+/* --- 5. CAROUSEL UTILITIES --- */
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -69,18 +122,19 @@ html.dark {
   scrollbar-width: none;
 }
 
-/* --- 5. GLOBAL STYLES --- */
+/* --- 6. GLOBAL STYLES --- */
 body {
   font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.6;
   background-color: var(--bg-page);
-  color: var(--text-primary);
+  color: var(--text-body);
   margin: 0;
   padding: 0;
-  overflow: hidden; /* Prevents scroll bounce on mobile */
+  overflow: hidden;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Smooth Fade In Animation */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
