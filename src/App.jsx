@@ -75,27 +75,22 @@ export default function App() {
   if (!session && !isGuestMode) {
     return (
       <div className="h-[100dvh] w-screen flex flex-col items-center justify-center bg-[#F9FAFB] dark:bg-[#0F1724] overflow-y-auto px-4 py-8 relative">
-        {/* Top-Right Theme Toggle */}
         <button
           onClick={() => setIsDarkMode((d) => !d)}
-          aria-label="Toggle Dark Mode"
-          className="fixed top-5 right-5 z-20 surface-card px-3 py-2 text-xs font-semibold text-[#111827] dark:text-white flex items-center gap-2 hover:border-[#FF6B00] transition"
+          aria-label="Toggle dark mode"
+          className="fixed top-5 right-5 z-20 surface-card px-3 py-2 text-[12px] font-medium text-[#111827] dark:text-white flex items-center gap-2 hover:border-[#FF6B00] transition"
         >
           <span>{isDarkMode ? '☀️' : '🌙'}</span>
-          <span>{isDarkMode ? 'Light' : 'Dark'}</span>
+          <span>{isDarkMode ? 'Light mode' : 'Dark mode'}</span>
         </button>
 
         <div className="surface-card-elevated w-full max-w-md p-8 sm:p-10 animate-fade-in relative z-10">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[12px] bg-[#FF6B00]/10 text-[#FF6B00] text-[11px] font-bold uppercase tracking-widest mb-4">
-              UPSC Polity & Governance
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[12px] bg-[#FF6B00]/10 text-[#FF6B00] text-[12px] font-medium mb-3">
+              UPSC polity & governance
             </div>
-            <h1 className="text-3xl font-serif font-black text-[#1A2332] dark:text-white mb-2 tracking-tight">
-              POLICYPATH AI
-            </h1>
-            <p className="text-[#6B7280] dark:text-[#9CA3AF] text-sm">
-              Your Personal Constitution Mentor
-            </p>
+            <h1 className="type-h1 mb-1.5">PolicyPath AI</h1>
+            <p className="type-body">Your personal Constitution mentor</p>
           </div>
 
           <Auth
@@ -106,17 +101,15 @@ export default function App() {
           />
 
           <div className="mt-6 flex flex-col items-center gap-3">
-            <div className="text-[#9CA3AF] text-[11px] font-semibold uppercase tracking-widest">
-              — OR —
-            </div>
+            <div className="type-caption">— Or —</div>
             <button
               onClick={() => setIsGuestMode(true)}
-              className="w-full bg-[#1A2332] hover:bg-[#243044] text-white font-semibold py-3 rounded-[12px] transition-colors shadow-sm text-sm"
+              className="w-full bg-[#1A2332] hover:bg-[#243044] text-white font-semibold py-3 rounded-[12px] transition-colors shadow-sm text-[15px]"
             >
-              Continue as Guest
+              Continue as guest
             </button>
-            <p className="text-[11px] text-[#9CA3AF] text-center mt-1">
-              Guests can chat, but need an account to save to the Vault.
+            <p className="type-caption text-center mt-1">
+              Guests can chat, but need an account to save to Learn.
             </p>
           </div>
         </div>
@@ -154,10 +147,8 @@ export default function App() {
                 ✕
               </button>
               <div className="text-center mb-6">
-                <h1 className="text-2xl font-serif font-bold text-[#1A2332] dark:text-white mb-1">
-                  Unlock PolicyPath
-                </h1>
-                <p className="text-[#6B7280] dark:text-[#9CA3AF] text-sm">
+                <h2 className="type-h2 mb-1">Unlock PolicyPath</h2>
+                <p className="type-body">
                   Save your progress, take tests, and view analytics.
                 </p>
               </div>
@@ -213,6 +204,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const messagesEndRef = useRef(null);
+  const chatInputRef = useRef(null);
 
   // Tab Navigation Protection
   const handleTabChange = (tabName) => {
@@ -222,6 +214,15 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       return;
     }
     setActiveTab(tabName);
+  };
+
+  // Floating "Ask Doubt 💬" FAB handler
+  const handleAskDoubtFab = () => {
+    setIsSidebarOpen(false);
+    setActiveTab('home');
+    setTimeout(() => {
+      chatInputRef.current?.focus();
+    }, 80);
   };
 
   // --- XP & STREAK LOGIC ---
@@ -277,7 +278,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
     if (!formData.full_name) return alert("Name is required!");
     const { error } = await supabase.from('profiles').update(formData).eq('id', session.user.id);
     if (!error) {
-      alert("Profile Saved Successfully!");
+      alert("Profile saved successfully!");
       setUserProfile((prev) => ({ ...prev, ...formData }));
       setEditingProfile(false);
       setIsNewUser(false);
@@ -327,7 +328,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         }
       }
     } catch (err) {
-      console.error("Unexpected Error:", err);
+      console.error("Unexpected error:", err);
     }
   }
 
@@ -356,7 +357,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
 
     const historyContext = messages
       .slice(-3)
-      .map((m) => `${m.role.toUpperCase()}: ${m.text}`)
+      .map((m) => `${m.role}: ${m.text}`)
       .join("\n");
 
     try {
@@ -376,7 +377,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         const visibleText = parts[0].trim();
         const hiddenPart = parts[1].split("||VAULT_END||")[0];
 
-        let topicTitle = "Constitutional Concept";
+        let topicTitle = "Constitutional concept";
         let topicSummary = "Mastered via PolicyPath AI";
 
         if (hiddenPart.includes("Topic:")) {
@@ -410,21 +411,21 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         } else {
           setMessages((prev) => [
             ...prev,
-            { role: "bot", text: `${visibleText}\n\n*(Login to save this to your Vault!)*` },
+            { role: "bot", text: `${visibleText}\n\n*(Sign in to save this to Learn!)*` },
           ]);
         }
       } else {
         setMessages((prev) => [...prev, { role: "bot", text: aiText }]);
       }
     } catch (e) {
-      setMessages((prev) => [...prev, { role: "bot", text: `⚠️ Network Error. Please try again.` }]);
+      setMessages((prev) => [...prev, { role: "bot", text: `⚠️ Network error. Please try again.` }]);
     } finally {
       setLoading(false);
     }
   };
 
   const startTest = async () => {
-    if (vault.length === 0) return alert("Vault is empty. Study first!");
+    if (vault.length === 0) return alert("Your Learn vault is empty. Study a topic first!");
     setTestState("loading");
 
     const topics = vault.map((v) => v.title).join(", ");
@@ -475,14 +476,14 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       const data = await res.json();
       aiSwot = data.answer;
     } catch (e) {
-      console.error("SWOT Gen Failed");
+      console.error("SWOT generation failed");
     }
 
     await supabase.from('exam_results').insert([
       {
         score: score,
         total_questions: quiz.length,
-        topics_covered: "Mixed Vault Test",
+        topics_covered: "Mixed vault test",
         user_id: session.user.id,
         swot_analysis: aiSwot,
       },
@@ -500,9 +501,74 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         )
       : 0;
 
+  // --- 1.3 BOTTOM NAVIGATION CONFIG ---
+  const navTabs = [
+    {
+      id: 'home',
+      label: 'Home',
+      outlineIcon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+      ),
+      filledIcon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M11.47 3.84a.75.75 0 0 1 1.06 0l8.69 8.69a.75.75 0 1 0 1.06-1.06l-8.689-8.69a2.25 2.25 0 0 0-3.182 0l-8.69 8.69a.75.75 0 0 0 1.061 1.06l8.69-8.69Z" />
+          <path d="m12 5.432 8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 0 1-.75-.75v-4.5a.75.75 0 0 0-.75-.75h-3a.75.75 0 0 0-.75.75V21a.75.75 0 0 1-.75.75H5.625a1.875 1.875 0 0 1-1.875-1.875v-6.198a2.29 2.29 0 0 0 .091-.086L12 5.432Z" />
+        </svg>
+      ),
+    },
+    {
+      id: 'vault',
+      label: 'Learn',
+      outlineIcon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+        </svg>
+      ),
+      filledIcon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M11.25 4.533A9.707 9.707 0 0 0 6 3a9.735 9.735 0 0 0-3.25.555.75.75 0 0 0-.5.707v14.25a.75.75 0 0 0 1 .707A8.237 8.237 0 0 1 6 18.75c1.995 0 3.823.707 5.25 1.886V4.533ZM12.75 20.636A8.214 8.214 0 0 1 18 18.75c.966 0 1.89.166 2.75.47a.75.75 0 0 0 1-.708V4.262a.75.75 0 0 0-.5-.707A9.735 9.735 0 0 0 18 3a9.707 9.707 0 0 0-5.25 1.533v16.103Z" />
+        </svg>
+      ),
+    },
+    {
+      id: 'test',
+      label: 'Practice',
+      outlineIcon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+        </svg>
+      ),
+      filledIcon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+        </svg>
+      ),
+    },
+    {
+      id: 'analytics',
+      label: 'Progress',
+      outlineIcon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10" />
+          <line x1="12" y1="20" x2="12" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="14" />
+        </svg>
+      ),
+      filledIcon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v15.75c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V4.125c0-1.036-.84-1.875-1.875-1.875h-.75ZM9.75 8.625c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-.75a1.875 1.875 0 0 1-1.875-1.875V8.625ZM3 13.125c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v6.75c0 1.035-.84 1.875-1.875 1.875h-.75A1.875 1.875 0 0 1 3 19.875v-6.75Z" />
+        </svg>
+      ),
+    },
+  ];
+
   // --- UI RENDER ---
   return (
-    <div className="h-[100dvh] w-full bg-[#FFFFFF] dark:bg-[#0F1724] text-[#111827] dark:text-[#F9FAFB] font-sans overflow-hidden flex flex-col relative transition-colors duration-200">
+    <div className="h-[100dvh] w-full bg-[#FFFFFF] dark:bg-[#0F1724] text-[#4B5563] dark:text-[#D1D5DB] font-sans overflow-hidden flex flex-col relative transition-colors duration-200">
       {/* HEADER */}
       <header className="px-5 py-3.5 flex justify-between items-center z-40 bg-[#FFFFFF] dark:bg-[#1A2332] border-b border-[#E5E7EB] dark:border-[#283548]">
         <div className="flex items-center gap-3.5">
@@ -520,8 +586,9 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
           </button>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#FF6B00]" />
-            <h1 className="font-serif font-bold text-base sm:text-lg tracking-wide text-[#1A2332] dark:text-white">
-              POLICYPATH
+            {/* Brand: "PolicyPath" — Inter Bold, 18px, navy */}
+            <h1 className="type-brand text-[#1A2332] dark:text-white">
+              PolicyPath
             </h1>
           </div>
         </div>
@@ -530,15 +597,16 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
           {/* Dark Mode Toggle */}
           <button
             onClick={toggleDarkMode}
-            aria-label="Toggle Dark Mode"
-            className="px-2.5 py-1.5 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] bg-[#F9FAFB] dark:bg-[#0F1724] text-xs font-semibold text-[#111827] dark:text-[#F9FAFB] hover:border-[#FF6B00] transition flex items-center gap-1.5"
+            aria-label="Toggle dark mode"
+            className="px-2.5 py-1.5 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] bg-[#F9FAFB] dark:bg-[#0F1724] text-[12px] font-medium text-[#111827] dark:text-[#F9FAFB] hover:border-[#FF6B00] transition flex items-center gap-1.5"
           >
             <span>{isDarkMode ? '☀️' : '🌙'}</span>
             <span className="hidden sm:inline">{isDarkMode ? 'Light' : 'Dark'}</span>
           </button>
 
-          <div className="text-[10px] font-bold bg-[#1A2332] text-white px-2.5 py-1 rounded-[12px] tracking-wider">
-            BETA 2.0
+          {/* Only allowed ALL-CAPS badge: "BETA" */}
+          <div className="text-[11px] font-bold bg-[#1A2332] text-white px-2.5 py-1 rounded-[12px] tracking-wider">
+            BETA
           </div>
         </div>
       </header>
@@ -547,7 +615,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       <AnimatePresence>
         {isSidebarOpen && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -555,7 +622,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
               onClick={() => setIsSidebarOpen(false)}
               className="fixed inset-0 bg-[#111827]/50 z-50"
             />
-            {/* Sidebar Panel */}
             <motion.div
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
@@ -578,11 +644,11 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                       🎓
                     </div>
                     <div>
-                      <h3 className="text-[#111827] dark:text-white font-bold text-sm">
+                      <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
                         {userProfile?.full_name || 'Scholar'}
                       </h3>
-                      <p className="text-xs font-semibold text-[#10B981] mt-0.5">
-                        {userProfile?.xp || 0} XP • {userProfile?.streak || 0} Day Streak
+                      <p className="type-caption text-[#10B981] font-medium mt-0.5">
+                        {userProfile?.xp || 0} XP • {userProfile?.streak || 0} day streak
                       </p>
                     </div>
                   </div>
@@ -592,10 +658,12 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                       👤
                     </div>
                     <div>
-                      <h3 className="text-[#111827] dark:text-white font-bold text-sm">Guest User</h3>
+                      <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
+                        Guest user
+                      </h3>
                       <button
                         onClick={triggerAuth}
-                        className="text-xs text-[#FF6B00] font-semibold hover:underline mt-0.5"
+                        className="type-caption text-[#FF6B00] font-medium hover:underline mt-0.5"
                       >
                         Sign in to save progress
                       </button>
@@ -608,17 +676,17 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
               <div className="flex flex-col gap-2 flex-1">
                 <button
                   onClick={() => handleTabChange('leaderboard')}
-                  className="flex items-center gap-3.5 text-left p-3.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] text-[#111827] dark:text-white transition"
+                  className="flex items-center gap-3.5 text-left p-3.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] text-[#374151] dark:text-white transition"
                 >
                   <span className="text-lg">👑</span>
-                  <span className="font-semibold text-sm">Hall of Fame</span>
+                  <span className="type-h3">Hall of fame</span>
                 </button>
                 <button
                   onClick={() => handleTabChange('profile')}
-                  className="flex items-center gap-3.5 text-left p-3.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] text-[#111827] dark:text-white transition"
+                  className="flex items-center gap-3.5 text-left p-3.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] text-[#374151] dark:text-white transition"
                 >
                   <span className="text-lg">🪪</span>
-                  <span className="font-semibold text-sm">Student ID</span>
+                  <span className="type-h3">Student ID</span>
                 </button>
               </div>
 
@@ -630,21 +698,21 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                       supabase.auth.signOut();
                       setIsSidebarOpen(false);
                     }}
-                    className="w-full flex items-center justify-center gap-2 p-3.5 rounded-[12px] bg-[#EF4444]/10 text-[#EF4444] font-semibold text-sm hover:bg-[#EF4444]/15 transition"
+                    className="w-full flex items-center justify-center gap-2 p-3.5 rounded-[12px] bg-[#EF4444]/10 text-[#EF4444] font-semibold text-[15px] hover:bg-[#EF4444]/15 transition"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                       <polyline points="16 17 21 12 16 7" />
                       <line x1="21" y1="12" x2="9" y2="12" />
                     </svg>
-                    Sign Out
+                    Sign out
                   </button>
                 ) : (
                   <button
                     onClick={triggerAuth}
-                    className="w-full bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold py-3.5 rounded-[12px] shadow-sm transition text-sm"
+                    className="w-full bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold py-3.5 rounded-[12px] shadow-sm transition text-[15px]"
                   >
-                    Sign In / Register
+                    Sign in / Register
                   </button>
                 )}
               </div>
@@ -654,7 +722,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       </AnimatePresence>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 overflow-y-auto pb-36 scroll-smooth bg-[#FFFFFF] dark:bg-[#0F1724]">
+      <main className="flex-1 overflow-y-auto pb-40 scroll-smooth bg-[#FFFFFF] dark:bg-[#0F1724]">
         {/* TAB 1: HOME */}
         {activeTab === 'home' && (
           <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-4">
@@ -664,17 +732,17 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                 className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
               >
                 <div
-                  className={`max-w-[85%] p-4 sm:p-5 rounded-[12px] text-sm leading-relaxed ${
+                  className={`max-w-[85%] p-4 sm:p-5 rounded-[12px] ${
                     m.role === 'user'
-                      ? 'bg-[#1A2332] text-white shadow-sm'
-                      : 'surface-card text-[#111827] dark:text-[#F9FAFB]'
+                      ? 'bg-[#1A2332] text-white text-[15px] leading-[1.6] shadow-sm'
+                      : 'surface-card type-body'
                   }`}
                 >
                   <div className="whitespace-pre-wrap">{m.text}</div>
                   {m.saved && (
-                    <div className="mt-3 pt-2.5 border-t border-[#E5E7EB] dark:border-[#283548] flex items-center gap-2 text-[#10B981] text-[11px] font-bold uppercase tracking-wider">
+                    <div className="mt-3 pt-2.5 border-t border-[#E5E7EB] dark:border-[#283548] flex items-center gap-2 text-[#10B981] text-[12px] font-medium">
                       <span className="bg-[#10B981]/15 px-1.5 py-0.5 rounded-full">✓</span>
-                      Saved to Vault
+                      Saved to Learn
                     </div>
                   )}
                 </div>
@@ -682,9 +750,9 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
             ))}
             {loading && (
               <div className="flex justify-start pl-1">
-                <div className="surface-card flex items-center gap-2.5 text-xs font-medium text-[#6B7280] dark:text-[#9CA3AF] px-4 py-2.5">
+                <div className="surface-card flex items-center gap-2.5 type-caption px-4 py-2.5">
                   <div className="w-2 h-2 bg-[#FF6B00] rounded-full animate-bounce" />
-                  The Mentor is drafting...
+                  The mentor is drafting...
                 </div>
               </div>
             )}
@@ -692,14 +760,12 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
           </div>
         )}
 
-        {/* TAB 2: VAULT */}
+        {/* TAB 2: LEARN (Vault) */}
         {activeTab === 'vault' && (
           <div className="p-5 sm:p-6 max-w-4xl mx-auto space-y-6">
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#1A2332] dark:text-white mb-1">
-                Mastery Vault
-              </h2>
-              <p className="text-[#6B7280] dark:text-[#9CA3AF] text-sm">
+              <h1 className="type-h1 mb-1">Mastery library</h1>
+              <p className="type-body">
                 Your constitutional knowledge portfolio ({vault.length} topics).
               </p>
             </motion.div>
@@ -707,12 +773,12 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
             {vault.length === 0 ? (
               <div className="surface-card p-12 text-center">
                 <div className="text-4xl mb-3">📭</div>
-                <p className="text-[#6B7280] dark:text-[#9CA3AF] text-sm">Your vault is empty.</p>
+                <p className="type-body">Your library is empty.</p>
                 <button
                   onClick={() => setActiveTab('home')}
-                  className="mt-4 bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold text-xs px-5 py-2.5 rounded-[12px] transition"
+                  className="mt-4 bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold text-[15px] px-5 py-2.5 rounded-[12px] transition"
                 >
-                  Start Learning
+                  Start learning
                 </button>
               </div>
             ) : (
@@ -734,7 +800,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                     whileTap={{ scale: 0.98 }}
                     className="surface-card-elevated min-w-[275px] w-[275px] h-[340px] p-6 flex flex-col justify-between snap-center cursor-pointer hover:border-[#FF6B00] relative overflow-hidden"
                   >
-                    {/* Top Accent Stripe */}
                     <div
                       className={`absolute top-0 left-0 right-0 h-1.5 ${
                         i % 3 === 0
@@ -745,18 +810,14 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                       }`}
                     />
                     <div className="pt-2">
-                      <span className="inline-flex items-center gap-1.5 text-[10px] font-bold bg-[#10B981]/10 text-[#10B981] px-2.5 py-1 rounded-[12px] uppercase tracking-wider">
+                      <span className="inline-flex items-center gap-1.5 text-[12px] font-medium bg-[#10B981]/10 text-[#10B981] px-2.5 py-0.5 rounded-[12px]">
                         ✓ Mastered
                       </span>
-                      <h3 className="text-xl font-serif font-bold mt-4 mb-2.5 leading-snug text-[#111827] dark:text-white">
-                        {v.title}
-                      </h3>
-                      <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF] line-clamp-5 leading-relaxed">
-                        {v.notes}
-                      </p>
+                      <h2 className="type-h2 mt-3.5 mb-2 line-clamp-2">{v.title}</h2>
+                      <p className="type-body line-clamp-4">{v.notes}</p>
                     </div>
-                    <div className="text-[11px] font-semibold text-[#FF6B00] pt-3 border-t border-[#E5E7EB] dark:border-[#283548]">
-                      Read Note →
+                    <div className="text-[12px] font-medium text-[#FF6B00] pt-3 border-t border-[#E5E7EB] dark:border-[#283548]">
+                      Read note →
                     </div>
                   </motion.div>
                 ))}
@@ -765,7 +826,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
           </div>
         )}
 
-        {/* TAB 3: TEST PORTAL */}
+        {/* TAB 3: PRACTICE (Test Portal) */}
         {activeTab === 'test' && (
           <div className="min-h-full flex flex-col items-center justify-center animate-fade-in p-4">
             {testState === 'idle' && (
@@ -774,44 +835,40 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                   🎯
                 </div>
                 <div>
-                  <h2 className="text-2xl font-serif font-bold text-[#1A2332] dark:text-white">
-                    Ready to Prove It?
-                  </h2>
-                  <p className="text-sm text-[#6B7280] dark:text-[#9CA3AF] mt-1.5">
-                    Generate a 10-question UPSC quiz based on your Vault.
+                  <h1 className="type-h1">Ready to prove it?</h1>
+                  <p className="type-body mt-1.5">
+                    Generate a 10-question UPSC quiz based on your saved topics.
                   </p>
                 </div>
                 <button
                   onClick={startTest}
-                  className="w-full bg-[#FF6B00] hover:bg-[#E66000] text-white font-bold py-3.5 rounded-[12px] shadow-sm transition-colors text-sm tracking-wide"
+                  className="w-full bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold py-3.5 rounded-[12px] shadow-sm transition-colors text-[15px]"
                 >
-                  GENERATE TEST
+                  Generate test
                 </button>
               </div>
             )}
 
             {testState === 'loading' && (
-              <div className="surface-card px-8 py-6 text-center space-y-2">
+              <div className="surface-card px-8 py-6 text-center space-y-2.5">
                 <div className="w-6 h-6 border-2 border-[#FF6B00] border-t-transparent rounded-full animate-spin mx-auto" />
-                <div className="text-base font-serif font-bold text-[#1A2332] dark:text-white">
-                  Constructing Challenge...
-                </div>
+                <h3 className="type-h3">Constructing challenge...</h3>
               </div>
             )}
 
             {testState === 'active' && (
               <div className="w-full max-w-md animate-fade-in">
-                <div className="flex justify-between text-xs text-[#6B7280] dark:text-[#9CA3AF] mb-3 uppercase font-bold tracking-wider">
+                <div className="flex justify-between type-caption mb-3 font-medium">
                   <span>
-                    Question {currentQIndex + 1}/{quiz.length}
+                    Question {currentQIndex + 1} of {quiz.length}
                   </span>
-                  <span className="text-[#10B981]">Score: {score}</span>
+                  <span className="text-[#10B981] font-semibold">Score: {score}</span>
                 </div>
 
                 <div className="surface-card-elevated p-6 sm:p-7 mb-5 min-h-[130px] flex items-center">
-                  <p className="font-semibold text-base sm:text-lg leading-relaxed text-[#111827] dark:text-white">
+                  <h3 className="type-h3 text-[#111827] dark:text-white">
                     {quiz[currentQIndex].question}
-                  </p>
+                  </h3>
                 </div>
 
                 <div className="space-y-2.5">
@@ -819,10 +876,10 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                     <button
                       key={i}
                       onClick={() => setSelectedOption(opt)}
-                      className={`w-full p-4 text-left rounded-[12px] border text-sm font-medium transition-all flex justify-between items-center ${
+                      className={`w-full p-4 text-left rounded-[12px] border text-[15px] transition-all flex justify-between items-center ${
                         selectedOption === opt
-                          ? 'bg-[#1A2332] border-[#1A2332] text-white shadow-sm'
-                          : 'surface-card text-[#111827] dark:text-[#F9FAFB] hover:border-[#FF6B00]'
+                          ? 'bg-[#1A2332] border-[#1A2332] text-white font-medium shadow-sm'
+                          : 'surface-card text-[#4B5563] dark:text-[#D1D5DB] hover:border-[#FF6B00]'
                       }`}
                     >
                       <span>{opt}</span>
@@ -842,36 +899,30 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                       finishTest();
                     }
                   }}
-                  className={`mt-6 w-full py-3.5 rounded-[12px] font-bold text-sm uppercase tracking-wider transition-all ${
+                  className={`mt-6 w-full py-3.5 rounded-[12px] font-semibold text-[15px] transition-all ${
                     selectedOption
                       ? 'bg-[#FF6B00] hover:bg-[#E66000] text-white shadow-sm'
                       : 'bg-[#E5E7EB] dark:bg-[#283548] text-[#9CA3AF] cursor-not-allowed'
                   }`}
                 >
-                  {currentQIndex + 1 === quiz.length ? "Finish Test" : "Next Question →"}
+                  {currentQIndex + 1 === quiz.length ? "Finish test" : "Next question →"}
                 </button>
               </div>
             )}
 
             {testState === 'result' && (
               <div className="surface-card-elevated p-8 sm:p-10 text-center space-y-5 max-w-sm w-full">
-                <h2 className="text-2xl font-serif font-bold text-[#1A2332] dark:text-white">
-                  Test Result
-                </h2>
-                <div
-                  className={`text-6xl font-bold ${
-                    score > 5 ? 'text-[#10B981]' : 'text-[#EF4444]'
-                  }`}
-                >
+                <h2 className="type-h2">Test result</h2>
+                <div className="type-stat">
                   {score}{' '}
-                  <span className="text-2xl text-[#9CA3AF] font-normal">/ {quiz.length}</span>
+                  <span className="text-[18px] text-[#9CA3AF] font-normal">/ {quiz.length}</span>
                 </div>
-                <p className="text-sm text-[#6B7280] dark:text-[#9CA3AF]">
-                  Check Analytics for your detailed AI SWOT breakdown.
+                <p className="type-body">
+                  Check Progress for your detailed AI SWOT breakdown.
                 </p>
                 <button
                   onClick={() => setTestState('idle')}
-                  className="w-full bg-[#1A2332] hover:bg-[#243044] text-white font-semibold py-3 rounded-[12px] text-sm transition"
+                  className="w-full bg-[#1A2332] hover:bg-[#243044] text-white font-semibold py-3 rounded-[12px] text-[15px] transition"
                 >
                   Done
                 </button>
@@ -880,54 +931,45 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
           </div>
         )}
 
-        {/* TAB 4: ANALYTICS */}
+        {/* TAB 4: PROGRESS (Analytics) */}
         {activeTab === 'analytics' && (
           <div className="space-y-5 animate-fade-in max-w-lg mx-auto p-5">
-            <h2 className="text-2xl font-serif font-bold text-[#1A2332] dark:text-white">
-              Performance
-            </h2>
+            <h1 className="type-h1">Performance</h1>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="surface-card p-6 text-center">
-                <div className="text-3xl font-bold text-[#1A2332] dark:text-white mb-1">
-                  {vault.length}
-                </div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-[#6B7280] dark:text-[#9CA3AF]">
-                  Topics Mastered
-                </div>
+                {/* Stats: Inter Bold, 32px, Primary color (#FF6B00) */}
+                <div className="type-stat mb-1">{vault.length}</div>
+                <div className="type-caption">Topics mastered</div>
               </div>
               <div className="surface-card p-6 text-center">
-                <div className="text-3xl font-bold text-[#10B981] mb-1">{avgScore}%</div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-[#6B7280] dark:text-[#9CA3AF]">
-                  Avg Accuracy
-                </div>
+                <div className="type-stat mb-1">{avgScore}%</div>
+                <div className="type-caption">Average accuracy</div>
               </div>
             </div>
 
             <div className="surface-card p-6">
-              <h3 className="text-xs font-bold uppercase tracking-widest mb-5 text-[#6B7280] dark:text-[#9CA3AF]">
-                Recent Tests (Tap for SWOT)
-              </h3>
+              <h3 className="type-h3 mb-4">Recent tests (tap for SWOT)</h3>
               <div className="space-y-3">
                 {examResults.length === 0 ? (
-                  <p className="text-xs text-[#9CA3AF]">No data yet.</p>
+                  <p className="type-caption">No test data yet.</p>
                 ) : (
                   examResults.slice(0, 5).map((res, i) => (
                     <div
                       key={i}
                       onClick={() => setViewingSwot(res)}
-                      className="flex justify-between text-sm items-center pb-3 border-b border-[#E5E7EB] dark:border-[#283548] last:border-0 cursor-pointer hover:bg-[#F9FAFB] dark:hover:bg-[#243044] p-2 rounded-[12px] transition"
+                      className="flex justify-between items-center pb-3 border-b border-[#E5E7EB] dark:border-[#283548] last:border-0 cursor-pointer hover:bg-[#F9FAFB] dark:hover:bg-[#243044] p-2 rounded-[12px] transition"
                     >
                       <div>
-                        <div className="text-[#111827] dark:text-white font-semibold">
-                          {res.topics_covered || "General Test"}
+                        <div className="text-[15px] text-[#111827] dark:text-white font-medium">
+                          {res.topics_covered || "General test"}
                         </div>
-                        <div className="text-[11px] text-[#9CA3AF]">
+                        <div className="type-caption">
                           {new Date(res.created_at).toLocaleDateString()}
                         </div>
                       </div>
                       <span
-                        className={`font-bold px-3 py-1 rounded-[12px] text-xs ${
+                        className={`font-semibold px-3 py-1 rounded-[12px] text-[12px] ${
                           res.score >= 5
                             ? 'bg-[#10B981]/10 text-[#10B981]'
                             : 'bg-[#EF4444]/10 text-[#EF4444]'
@@ -950,13 +992,11 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                   >
                     ✕
                   </button>
-                  <h3 className="text-xl font-serif font-bold text-[#1A2332] dark:text-white mb-1">
-                    AI SWOT Analysis
-                  </h3>
-                  <div className="text-xs text-[#FF6B00] mb-5 uppercase tracking-wider font-bold">
+                  <h2 className="type-h2 mb-1">AI SWOT analysis</h2>
+                  <div className="type-caption text-[#FF6B00] font-medium mb-4">
                     Score: {viewingSwot.score}/{viewingSwot.total_questions}
                   </div>
-                  <div className="bg-[#F9FAFB] dark:bg-[#0F1724] p-4 rounded-[12px] text-sm leading-relaxed text-[#111827] dark:text-[#F9FAFB] border border-[#E5E7EB] dark:border-[#283548] whitespace-pre-wrap">
+                  <div className="bg-[#F9FAFB] dark:bg-[#0F1724] p-4 rounded-[12px] type-body border border-[#E5E7EB] dark:border-[#283548] whitespace-pre-wrap">
                     {viewingSwot.swot_analysis || "Analysis not available for this test."}
                   </div>
                 </div>
@@ -969,12 +1009,8 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         {activeTab === 'leaderboard' && (
           <div className="p-5 max-w-lg mx-auto space-y-6 animate-fade-in">
             <div className="text-center">
-              <h2 className="text-2xl font-serif font-bold text-[#1A2332] dark:text-white">
-                Hall of Fame
-              </h2>
-              <p className="text-[#6B7280] dark:text-[#9CA3AF] text-sm mt-1">
-                Top Scholars Globally
-              </p>
+              <h1 className="type-h1">Hall of fame</h1>
+              <p className="type-body mt-1">Top scholars globally</p>
             </div>
             <div className="surface-card overflow-hidden">
               {leaderboard.map((user, index) => (
@@ -986,7 +1022,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                 >
                   <div className="flex items-center gap-3.5">
                     <div
-                      className={`w-8 h-8 rounded-[12px] flex items-center justify-center font-bold text-xs ${
+                      className={`w-8 h-8 rounded-[12px] flex items-center justify-center font-bold text-[12px] ${
                         index === 0
                           ? 'bg-[#FF6B00] text-white'
                           : index === 1
@@ -997,16 +1033,16 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                       {index + 1}
                     </div>
                     <div>
-                      <div className="font-bold text-sm text-[#111827] dark:text-white">
+                      <div className="font-semibold text-[15px] text-[#111827] dark:text-white">
                         {user.username}
                       </div>
-                      <div className="text-[11px] text-[#6B7280] dark:text-[#9CA3AF] flex gap-2.5 mt-0.5">
+                      <div className="type-caption flex gap-2.5 mt-0.5">
                         <span>🔥 {user.streak}d streak</span>
                         <span>📚 {user.topics_mastered} mastered</span>
                       </div>
                     </div>
                   </div>
-                  <div className="text-sm font-bold text-[#10B981]">{user.xp} XP</div>
+                  <div className="text-[15px] font-bold text-[#10B981]">{user.xp} XP</div>
                 </div>
               ))}
             </div>
@@ -1016,95 +1052,93 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         {/* TAB 6: PROFILE */}
         {activeTab === 'profile' && (
           <div className="p-5 max-w-lg mx-auto animate-fade-in">
-            <h2 className="text-2xl font-serif font-bold text-[#1A2332] dark:text-white mb-5 text-center">
-              Student ID
-            </h2>
+            <h1 className="type-h1 mb-5 text-center">Student ID</h1>
             <div className="surface-card-elevated p-6 mb-6">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-14 h-14 bg-[#1A2332] text-white rounded-[12px] flex items-center justify-center text-2xl">
                   🎓
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-[#111827] dark:text-white">
+                  <h2 className="type-h2">
                     {userProfile?.full_name || session.user.email.split('@')[0]}
-                  </h3>
-                  <span className="inline-block mt-1 text-[11px] font-bold bg-[#10B981]/10 text-[#10B981] px-2.5 py-0.5 rounded-[12px]">
+                  </h2>
+                  <span className="inline-block mt-1 text-[12px] font-medium bg-[#10B981]/10 text-[#10B981] px-2.5 py-0.5 rounded-[12px]">
                     Scholar • {userProfile?.xp || 0} XP
                   </span>
                 </div>
               </div>
-              <div className="space-y-3 text-sm">
+              <div className="space-y-3 type-body">
                 <div className="flex justify-between border-b border-[#E5E7EB] dark:border-[#283548] pb-2.5">
                   <span className="text-[#6B7280] dark:text-[#9CA3AF]">Education</span>
-                  <span className="font-semibold text-[#111827] dark:text-white">
+                  <span className="font-medium text-[#111827] dark:text-white">
                     {userProfile?.education_level || 'Not set'}
                   </span>
                 </div>
                 <div className="flex justify-between border-b border-[#E5E7EB] dark:border-[#283548] pb-2.5">
                   <span className="text-[#6B7280] dark:text-[#9CA3AF]">Institution</span>
-                  <span className="font-semibold text-[#111827] dark:text-white">
+                  <span className="font-medium text-[#111827] dark:text-white">
                     {userProfile?.institution || 'Not set'}
                   </span>
                 </div>
                 <div className="flex justify-between pb-1">
                   <span className="text-[#6B7280] dark:text-[#9CA3AF]">City</span>
-                  <span className="font-semibold text-[#111827] dark:text-white">
+                  <span className="font-medium text-[#111827] dark:text-white">
                     {userProfile?.city || 'Not set'}
                   </span>
                 </div>
               </div>
               <button
                 onClick={() => setEditingProfile(true)}
-                className="mt-6 w-full bg-[#1A2332] hover:bg-[#243044] text-white py-3 rounded-[12px] text-xs uppercase tracking-wider font-bold transition"
+                className="mt-6 w-full bg-[#1A2332] hover:bg-[#243044] text-white py-3 rounded-[12px] text-[15px] font-semibold transition"
               >
-                Edit Profile
+                Edit profile
               </button>
             </div>
 
             {editingProfile && (
               <div className="fixed inset-0 z-[60] bg-[#111827]/60 flex items-center justify-center p-4">
                 <div className="surface-card-elevated w-full max-w-md p-6">
-                  <h3 className="text-lg font-bold text-[#1A2332] dark:text-white mb-4">
-                    {isNewUser ? "Setup Your Profile" : "Edit Details"}
-                  </h3>
+                  <h2 className="type-h2 mb-4">
+                    {isNewUser ? "Set up your profile" : "Edit details"}
+                  </h2>
                   <div className="space-y-3">
                     <input
-                      placeholder="Full Name (Required)"
+                      placeholder="Full name (required)"
                       value={formData.full_name}
                       onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                      className="w-full bg-[#F9FAFB] dark:bg-[#0F1724] border border-[#E5E7EB] dark:border-[#283548] rounded-[12px] p-3 text-sm text-[#111827] dark:text-white focus:outline-none focus:border-[#FF6B00]"
+                      className="w-full bg-[#F9FAFB] dark:bg-[#0F1724] border border-[#E5E7EB] dark:border-[#283548] rounded-[12px] p-3 text-[15px] text-[#111827] dark:text-white focus:outline-none focus:border-[#FF6B00]"
                     />
                     <input
                       placeholder="Class / Degree"
                       value={formData.education_level}
                       onChange={(e) => setFormData({ ...formData, education_level: e.target.value })}
-                      className="w-full bg-[#F9FAFB] dark:bg-[#0F1724] border border-[#E5E7EB] dark:border-[#283548] rounded-[12px] p-3 text-sm text-[#111827] dark:text-white focus:outline-none focus:border-[#FF6B00]"
+                      className="w-full bg-[#F9FAFB] dark:bg-[#0F1724] border border-[#E5E7EB] dark:border-[#283548] rounded-[12px] p-3 text-[15px] text-[#111827] dark:text-white focus:outline-none focus:border-[#FF6B00]"
                     />
                     <input
                       placeholder="Institution"
                       value={formData.institution}
                       onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
-                      className="w-full bg-[#F9FAFB] dark:bg-[#0F1724] border border-[#E5E7EB] dark:border-[#283548] rounded-[12px] p-3 text-sm text-[#111827] dark:text-white focus:outline-none focus:border-[#FF6B00]"
+                      className="w-full bg-[#F9FAFB] dark:bg-[#0F1724] border border-[#E5E7EB] dark:border-[#283548] rounded-[12px] p-3 text-[15px] text-[#111827] dark:text-white focus:outline-none focus:border-[#FF6B00]"
                     />
                     <input
                       placeholder="City"
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      className="w-full bg-[#F9FAFB] dark:bg-[#0F1724] border border-[#E5E7EB] dark:border-[#283548] rounded-[12px] p-3 text-sm text-[#111827] dark:text-white focus:outline-none focus:border-[#FF6B00]"
+                      className="w-full bg-[#F9FAFB] dark:bg-[#0F1724] border border-[#E5E7EB] dark:border-[#283548] rounded-[12px] p-3 text-[15px] text-[#111827] dark:text-white focus:outline-none focus:border-[#FF6B00]"
                     />
                   </div>
                   <div className="flex gap-3 mt-5">
                     {!isNewUser && (
                       <button
                         onClick={() => setEditingProfile(false)}
-                        className="flex-1 py-3 rounded-[12px] text-sm font-semibold text-[#6B7280] hover:bg-[#F9FAFB] dark:hover:bg-[#243044]"
+                        className="flex-1 py-3 rounded-[12px] text-[15px] font-medium text-[#6B7280] hover:bg-[#F9FAFB] dark:hover:bg-[#243044]"
                       >
                         Cancel
                       </button>
                     )}
                     <button
                       onClick={saveProfile}
-                      className="flex-1 bg-[#FF6B00] hover:bg-[#E66000] text-white py-3 rounded-[12px] text-sm font-bold shadow-sm"
+                      className="flex-1 bg-[#FF6B00] hover:bg-[#E66000] text-white py-3 rounded-[12px] text-[15px] font-semibold shadow-sm"
                     >
                       Save
                     </button>
@@ -1116,15 +1150,26 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         )}
       </main>
 
-        {/* 3. INPUT AREA (Home only) */}
+      {/* FLOATING "Ask Doubt 💬" FAB BUTTON (Bottom Right) */}
+      {activeTab !== 'home' && (
+        <button
+          onClick={handleAskDoubtFab}
+          className="fixed bottom-22 right-4 z-40 bg-[#FF6B00] hover:bg-[#E66000] active:scale-95 text-white font-semibold text-[14px] px-4 py-3 rounded-full shadow-lg flex items-center gap-2 transition-all"
+        >
+          <span>Ask Doubt 💬</span>
+        </button>
+      )}
+
+      {/* 3. INPUT AREA (Home only) */}
       {activeTab === 'home' && (
-        <div className="fixed bottom-20 w-full px-4 max-w-2xl mx-auto left-0 right-0 z-40">
+        <div className="fixed bottom-22 w-full px-4 max-w-2xl mx-auto left-0 right-0 z-40">
           <div className="surface-card-elevated p-1.5 flex items-center">
             <input
+              ref={chatInputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Ask about Article 21, Preamble..."
-              className="flex-1 bg-transparent border-none px-3.5 py-2 text-sm text-[#111827] dark:text-white focus:outline-none placeholder-[#9CA3AF]"
+              className="flex-1 bg-transparent border-none px-3.5 py-2 text-[15px] text-[#111827] dark:text-white focus:outline-none placeholder-[#9CA3AF]"
               onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
               disabled={loading}
             />
@@ -1143,58 +1188,34 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         </div>
       )}
 
-      {/* 4. CLEAN BOTTOM NAVIGATION (4 Tabs Only) */}
-      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40">
-        <nav className="surface-card-elevated px-6 py-2.5 flex gap-7">
-          {[
-            { id: 'home', icon: <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /> },
-            { id: 'vault', icon: <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /> },
-            {
-              id: 'test',
-              icon: (
-                <>
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="m9 12 2 2 4-4" />
-                </>
-              ),
-            },
-            {
-              id: 'analytics',
-              icon: (
-                <>
-                  <line x1="18" y1="20" x2="18" y2="10" />
-                  <line x1="12" y1="20" x2="12" y2="4" />
-                  <line x1="6" y1="20" x2="6" y2="14" />
-                </>
-              ),
-            },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              className={`p-2 rounded-[12px] transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-[#FF6B00]/10 text-[#FF6B00]'
-                  : 'text-[#9CA3AF] hover:text-[#111827] dark:hover:text-white'
-              }`}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+      {/* 4. 1.3 NEW BOTTOM NAVIGATION (4 Tabs with Labels: Home | Learn | Practice | Progress) */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#FFFFFF] dark:bg-[#1A2332] border-t border-[#E5E7EB] dark:border-[#283548] px-2 py-2">
+        <div className="max-w-lg mx-auto grid grid-cols-4 gap-1">
+          {navTabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-[12px] transition-colors ${
+                  isActive
+                    ? 'text-[#FF6B00]'
+                    : 'text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#111827] dark:hover:text-white'
+                }`}
               >
-                {tab.icon}
-              </svg>
-            </button>
-          ))}
-        </nav>
-      </div>
+                {isActive ? tab.filledIcon : tab.outlineIcon}
+                <span
+                  className={`text-[12px] mt-1 leading-none ${
+                    isActive ? 'font-bold text-[#FF6B00]' : 'font-normal'
+                  }`}
+                >
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
 
       {/* 5. READING MODAL */}
       {selectedArticle && (
@@ -1206,15 +1227,11 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
             >
               ✕
             </button>
-            <span className="inline-block text-[10px] font-bold bg-[#10B981]/10 text-[#10B981] px-2.5 py-1 rounded-[12px] uppercase tracking-wider mb-3">
-              Mastered Note
+            <span className="inline-block text-[12px] font-medium bg-[#10B981]/10 text-[#10B981] px-2.5 py-0.5 rounded-[12px] mb-3">
+              Mastered note
             </span>
-            <h1 className="text-2xl font-serif font-bold text-[#1A2332] dark:text-white mb-4">
-              {selectedArticle.title}
-            </h1>
-            <div className="text-[#111827] dark:text-[#F9FAFB] leading-relaxed whitespace-pre-wrap text-sm sm:text-base">
-              {selectedArticle.notes}
-            </div>
+            <h1 className="type-h1 mb-4">{selectedArticle.title}</h1>
+            <div className="type-body whitespace-pre-wrap">{selectedArticle.notes}</div>
           </div>
         </div>
       )}
