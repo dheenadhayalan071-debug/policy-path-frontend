@@ -7,8 +7,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const BACKEND_URL = "https://policy-path-ai-backend-1.onrender.com";
 
-const AI_WELCOME_MSG =
-  "Namaste! 🙏 Main tumhara AI mentor hoon. Constitution, Polity, Economy — kuch bhi pucho. Shuru karte hain?";
+// Sanitize any legacy "Vault" text in AI responses or historical DB rows
+const cleanCopy = (str) => {
+  if (!str) return '';
+  return str
+    .replace(/Mixed Vault Test/gi, 'Mixed Polity Quiz')
+    .replace(/your Vault/gi, 'Topics You Know')
+    .replace(/\bVault\b/gi, 'Topics You Know');
+};
 
 // --- CURRICULUM DATA FOR LEARN & PRACTICE ---
 const SUBJECTS_DATA = [
@@ -184,9 +190,10 @@ const SUBJECTS_DATA = [
   },
 ];
 
-// --- HELPER: STRUCTURED SECTION CARD & CLEAN MARKDOWN RENDERER (P0 + P2) ---
+// --- HELPER: STRUCTURED SECTION CARD & CLEAN MARKDOWN RENDERER ---
 function FormattedAIMessage({ text }) {
   if (!text) return null;
+  const sanitized = cleanCopy(text);
   const sectionIcons = ['📌', '🔑', '📚', '⚖️', '📝', '👉'];
 
   const renderInlineBold = (str) => {
@@ -203,7 +210,7 @@ function FormattedAIMessage({ text }) {
     });
   };
 
-  const rawLines = text.split('\n');
+  const rawLines = sanitized.split('\n');
   const blocks = [];
   let currentBlock = null;
 
@@ -294,6 +301,14 @@ export default function App() {
       return false;
     }
   });
+  const [language, setLanguage] = useState(() => {
+    try {
+      const saved = localStorage.getItem('pp_lang');
+      return saved === 'Hinglish' ? 'Hinglish' : 'EN';
+    } catch {
+      return 'EN';
+    }
+  });
 
   useEffect(() => {
     const root = document.documentElement;
@@ -305,6 +320,12 @@ export default function App() {
       localStorage.setItem('pp_theme', 'light');
     }
   }, [isDarkMode]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pp_lang', language);
+    } catch {}
+  }, [language]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -345,18 +366,27 @@ export default function App() {
     return <div className="h-screen w-screen bg-[#FFFFFF] dark:bg-[#0F1724]" />;
   }
 
-  // EXPLICIT LANDING PAGE
+  // EXPLICIT LANDING PAGE (Default Warm English + Optional Hinglish)
   if (!session && !isGuestMode) {
     return (
       <div className="h-[100dvh] w-screen flex flex-col items-center justify-center bg-[#F9FAFB] dark:bg-[#0F1724] overflow-y-auto px-4 py-8 relative">
-        <button
-          onClick={() => setIsDarkMode((d) => !d)}
-          aria-label="Toggle dark mode"
-          className="fixed top-5 right-5 z-20 surface-card px-3 py-2 text-[12px] font-medium text-[#111827] dark:text-white flex items-center gap-2 hover:border-[#FF6B00] transition"
-        >
-          <span>{isDarkMode ? '☀️' : '🌙'}</span>
-          <span>{isDarkMode ? 'Light mode' : 'Dark mode'}</span>
-        </button>
+        <div className="fixed top-5 right-5 z-20 flex items-center gap-2">
+          <button
+            onClick={() => setLanguage((l) => (l === 'EN' ? 'Hinglish' : 'EN'))}
+            aria-label="Toggle language"
+            className="surface-card px-3 py-2 text-[12px] font-semibold text-[#FF6B00] hover:border-[#FF6B00] transition"
+          >
+            🌐 {language}
+          </button>
+          <button
+            onClick={() => setIsDarkMode((d) => !d)}
+            aria-label="Toggle dark mode"
+            className="surface-card px-3 py-2 text-[12px] font-medium text-[#111827] dark:text-white flex items-center gap-1.5 hover:border-[#FF6B00] transition"
+          >
+            <span>{isDarkMode ? '☀️' : '🌙'}</span>
+            <span>{isDarkMode ? 'Light' : 'Dark'}</span>
+          </button>
+        </div>
 
         <div className="surface-card-elevated w-full max-w-md p-8 sm:p-10 animate-fade-in relative z-10">
           <div className="text-center mb-7">
@@ -365,7 +395,9 @@ export default function App() {
             </div>
             <h1 className="type-h1 mb-2">PolicyPath</h1>
             <p className="type-body text-[#111827] dark:text-[#F9FAFB] font-medium">
-              Lakhs aspirants ke saath aap bhi UPSC ki tayyari karo — bilkul free
+              {language === 'Hinglish'
+                ? 'Lakhs aspirants ke saath aap bhi UPSC ki tayyari karo — bilkul free'
+                : 'Start your UPSC preparation today — 100% free'}
             </p>
           </div>
 
@@ -400,6 +432,8 @@ export default function App() {
         triggerAuth={() => setShowAuthModal(true)}
         isDarkMode={isDarkMode}
         toggleDarkMode={() => setIsDarkMode((d) => !d)}
+        language={language}
+        toggleLanguage={() => setLanguage((l) => (l === 'EN' ? 'Hinglish' : 'EN'))}
       />
 
       <AnimatePresence>
@@ -442,20 +476,19 @@ export default function App() {
 }
 
 // --- 2. MAIN APP ---
-function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
+function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode, language, toggleLanguage }) {
   const userStorageKey = session ? `pp_chat_history_${session.user.id}` : `pp_chat_history_guest`;
+  const isHinglish = language === 'Hinglish';
+  const backendLangPayload = isHinglish ? 'हिंदी' : 'English';
+
+  const aiWelcomeMessage = isHinglish
+    ? 'Namaste! 🙏 Main tumhara AI mentor hoon. Constitution, Polity, Economy — kuch bhi pucho. Shuru karte hain?'
+    : "Welcome! 👋 I'm your AI mentor for UPSC. Ask me anything on Constitution, Polity, or Economy — let's begin!";
 
   // --- NAVIGATION & MODAL STATES ---
   const [activeTab, setActiveTab] = useState('home'); // 'home' | 'learn' | 'practice' | 'progress' | 'leaderboard' | 'profile'
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [language, setLanguage] = useState(() => {
-    try {
-      return localStorage.getItem('pp_lang') || 'English';
-    } catch {
-      return 'English';
-    }
-  });
   const [reminderEnabled, setReminderEnabled] = useState(() => {
     try {
       return localStorage.getItem('pp_reminder_enabled') === 'true';
@@ -465,17 +498,14 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
   });
   const [showHelpModal, setShowHelpModal] = useState(false);
 
-  // Persist language choice
-  useEffect(() => {
-    try {
-      localStorage.setItem('pp_lang', language);
-    } catch {}
-  }, [language]);
-
-  // --- P2: DAILY STUDY REMINDER OPT-IN & SCHEDULER ---
+  // --- DAILY STUDY REMINDER OPT-IN & SCHEDULER ---
   const handleEnableReminders = async () => {
     if (!('Notification' in window)) {
-      alert("Notifications are not supported in this browser, par hum tumhe app mein daily yaad dilate rahenge! 💪");
+      alert(
+        isHinglish
+          ? 'Notifications is browser mein supported nahi hain, par hum tumhe app mein daily yaad dilate rahenge! 💪'
+          : 'Browser notifications are not supported on this device, but your daily study plan is always ready here!'
+      );
       return;
     }
     if (reminderEnabled) {
@@ -489,15 +519,17 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       localStorage.setItem('pp_reminder_enabled', 'true');
       localStorage.setItem('pp_reminder_time', '20:00');
       new Notification('PolicyPath Mentor 🏛️', {
-        body: 'Shabaash! Daily 8:00 PM UPSC study reminder set. Consistency se hi selection hota hai! 🔥',
+        body: isHinglish
+          ? 'Shabaash! Daily 8:00 PM UPSC study reminder set. Consistency se hi selection hota hai! 🔥'
+          : 'Daily 8:00 PM UPSC study reminder enabled! Consistency builds selection. 🔥',
         icon: '/parliament-emblem.png',
       });
     } else {
-      alert("Please allow notifications in your browser settings so PolicyPath can send daily study reminders.");
+      alert('Please allow notifications in your browser settings to receive daily study reminders.');
     }
   };
 
-useEffect(() => {
+  useEffect(() => {
     if (!reminderEnabled || !('Notification' in window) || Notification.permission !== 'granted') return;
     const interval = setInterval(() => {
       const now = new Date();
@@ -505,13 +537,15 @@ useEffect(() => {
       if (now.getHours() === 20 && now.getMinutes() === 0 && localStorage.getItem('pp_reminder_last_sent') !== todayKey) {
         localStorage.setItem('pp_reminder_last_sent', todayKey);
         new Notification('PolicyPath Daily Revision ⏰', {
-          body: 'Aaj ka 10-question Polity quiz complete kiya kya? Chalo 5 minute revise karte hain! 🔥',
+          body: isHinglish
+            ? 'Aaj ka 10-question Polity quiz complete kiya kya? Chalo 5 minute revise karte hain! 🔥'
+            : "Ready for today's 10-question Polity revision? Keep your streak alive! 🔥",
           icon: '/parliament-emblem.png',
         });
       }
     }, 30000);
     return () => clearInterval(interval);
-  }, [reminderEnabled]);
+  }, [reminderEnabled, isHinglish]);
 
   // --- HOME TODAY'S PLAN STATE ---
   const [todaysPlan, setTodaysPlan] = useState([
@@ -646,16 +680,22 @@ useEffect(() => {
   };
 
   const saveProfile = async () => {
-    if (!formData.full_name) return alert("Tumhara naam zaroori hai — please enter your full name!");
+    if (!formData.full_name) {
+      return alert(
+        isHinglish
+          ? 'Tumhara naam zaroori hai — please enter your full name!'
+          : 'Please enter your full name to continue.'
+      );
+    }
     const { error } = await supabase.from('profiles').update(formData).eq('id', session.user.id);
     if (!error) {
-      alert("Shabaash! Your profile has been saved 🎉");
+      alert(isHinglish ? 'Shabaash! Your profile has been saved 🎉' : 'Profile saved successfully! 🎉');
       setUserProfile((prev) => ({ ...prev, ...formData }));
       setEditingProfile(false);
       setIsNewUser(false);
       fetchData();
     } else {
-      alert("Could not save right now: " + error.message);
+      alert('Could not save right now: ' + error.message);
     }
   };
 
@@ -691,7 +731,7 @@ useEffect(() => {
           city: profile.city || prev.city || '',
         }));
 
-        if (!profile.full_name || profile.full_name.trim() === "") {
+        if (!profile.full_name || profile.full_name.trim() === '') {
           setIsNewUser(true);
           setEditingProfile(true);
         } else {
@@ -699,7 +739,7 @@ useEffect(() => {
         }
       }
     } catch (err) {
-      console.error("Unexpected error:", err);
+      console.error('Unexpected error:', err);
     }
   }
 
@@ -712,7 +752,7 @@ useEffect(() => {
   useEffect(() => {
     localStorage.setItem(userStorageKey, JSON.stringify(messages));
     if (isChatOpen) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, userStorageKey, isChatOpen]);
 
@@ -722,21 +762,31 @@ useEffect(() => {
       triggerAuth();
       return;
     }
-    const isDuplicate = vault.some((v) => v.title.toLowerCase() === title.toLowerCase());
+    const cleanTitle = cleanCopy(title);
+    const isDuplicate = vault.some((v) => v.title.toLowerCase() === cleanTitle.toLowerCase());
     if (isDuplicate) {
-      alert(`"${title}" is already in Topics You Know ✅! Keep going!`);
+      alert(`"${cleanTitle}" is already saved in Topics You Know ✅!`);
       return;
     }
     const { error } = await supabase.from('vault').insert([
-      { title, status: 'Mastered', notes: notes || 'Mastered with PolicyPath AI', user_id: session.user.id },
+      {
+        title: cleanTitle,
+        status: 'Mastered',
+        notes: cleanCopy(notes) || 'Mastered with PolicyPath AI',
+        user_id: session.user.id,
+      },
     ]);
     if (!error) {
       confetti({ particleCount: 150, spread: 60, colors: ['#FF6B00', '#10B981', '#1A2332'] });
       updateXP(25, 'mastery');
       fetchData();
-      alert(`Shabaash! "${title}" saved to Topics You Know ✅ (+25 XP 🎉)`);
+      alert(
+        isHinglish
+          ? `Shabaash! "${cleanTitle}" saved to Topics You Know ✅ (+25 XP 🎉)`
+          : `Saved! "${cleanTitle}" added to Topics You Know ✅ (+25 XP 🎉)`
+      );
     } else {
-      alert("Could not save topic right now: " + error.message);
+      alert('Could not save topic right now: ' + error.message);
     }
   };
 
@@ -750,15 +800,20 @@ useEffect(() => {
       const res = await fetch(`${BACKEND_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_query: prompt, history: "", mode: "chat", language }),
+        body: JSON.stringify({
+          user_query: prompt,
+          history: '',
+          mode: 'chat',
+          language: backendLangPayload,
+        }),
       });
       if (res.ok) {
         const data = await res.json();
-        const cleaned = data.answer.split('||VAULT_START||')[0].trim();
+        const cleaned = cleanCopy(data.answer.split('||VAULT_START||')[0].trim());
         setAiLessonExtra(cleaned);
       }
     } catch (e) {
-      console.error("Lesson AI fetch skipped:", e);
+      console.error('Lesson AI fetch skipped:', e);
     } finally {
       setLoadingLessonAI(false);
     }
@@ -770,15 +825,15 @@ useEffect(() => {
     if (!textToSend || loading) return;
 
     setLoading(true);
-    if (!customPrompt) setQuery("");
+    if (!customPrompt) setQuery('');
 
-    const newMessages = [...messages, { role: "user", text: textToSend }];
+    const newMessages = [...messages, { role: 'user', text: textToSend }];
     setMessages(newMessages);
 
     const historyContext = messages
       .slice(-3)
       .map((m) => `${m.role}: ${m.text}`)
-      .join("\n");
+      .join('\n');
 
     try {
       const res = await fetch(`${BACKEND_URL}/ask`, {
@@ -787,8 +842,8 @@ useEffect(() => {
         body: JSON.stringify({
           user_query: textToSend,
           history: historyContext,
-          mode: "chat",
-          language,
+          mode: 'chat',
+          language: backendLangPayload,
         }),
       });
 
@@ -797,19 +852,19 @@ useEffect(() => {
       const data = await res.json();
       let aiText = data.answer;
 
-      if (aiText.includes("||VAULT_START||")) {
-        const parts = aiText.split("||VAULT_START||");
-        const visibleText = parts[0].trim();
-        const hiddenPart = parts[1].split("||VAULT_END||")[0];
+      if (aiText.includes('||VAULT_START||')) {
+        const parts = aiText.split('||VAULT_START||');
+        const visibleText = cleanCopy(parts[0].trim());
+        const hiddenPart = parts[1].split('||VAULT_END||')[0];
 
-        let topicTitle = "Constitutional concept";
-        let topicSummary = "Mastered with PolicyPath AI";
+        let topicTitle = 'Constitutional concept';
+        let topicSummary = 'Mastered with PolicyPath AI';
 
-        if (hiddenPart.includes("Topic:")) {
-          topicTitle = hiddenPart.split("Topic:")[1].split("\n")[0].trim().replace(/\*/g, '');
+        if (hiddenPart.includes('Topic:')) {
+          topicTitle = hiddenPart.split('Topic:')[1].split('\n')[0].trim().replace(/\*/g, '');
         }
-        if (hiddenPart.includes("Summary:")) {
-          topicSummary = hiddenPart.split("Summary:")[1].trim().replace(/\*/g, '');
+        if (hiddenPart.includes('Summary:')) {
+          topicSummary = hiddenPart.split('Summary:')[1].trim().replace(/\*/g, '');
         }
 
         if (session) {
@@ -827,31 +882,39 @@ useEffect(() => {
         }
         setMessages((prev) => [
           ...prev,
-          { role: "bot", text: visibleText, topicHint: topicTitle, saved: Boolean(session) },
+          { role: 'bot', text: visibleText, topicHint: topicTitle, saved: Boolean(session) },
         ]);
       } else {
         const inferredTopic = textToSend.length > 45 ? textToSend.slice(0, 45) + '...' : textToSend;
-        setMessages((prev) => [...prev, { role: "bot", text: aiText, topicHint: inferredTopic }]);
+        setMessages((prev) => [
+          ...prev,
+          { role: 'bot', text: cleanCopy(aiText), topicHint: inferredTopic },
+        ]);
       }
     } catch (e) {
       setMessages((prev) => [
         ...prev,
-        { role: "bot", text: `⚠️ Connection thoda slow hai. Ek baar phir try karo!` },
+        {
+          role: 'bot',
+          text: isHinglish
+            ? '⚠️ Connection thoda slow hai. Ek baar phir try karo!'
+            : '⚠️ Connection is temporarily slow. Please try again in a moment!',
+        },
       ]);
     } finally {
       setLoading(false);
     }
   };
 
- // --- VOICE INPUT (🎤 FOR HINDI/ENGLISH THINKING STUDENTS) ---
+  // --- VOICE INPUT (🎤) ---
   const handleVoiceInput = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Voice input is not supported in this browser. Try Chrome on Android or Desktop.");
+      alert('Voice input is not supported in this browser. Try Chrome on Android or Desktop.');
       return;
     }
     const recognition = new SpeechRecognition();
-    recognition.lang = language === 'हिंदी' ? 'hi-IN' : 'en-IN';
+    recognition.lang = isHinglish ? 'hi-IN' : 'en-IN';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
@@ -867,7 +930,7 @@ useEffect(() => {
   };
 
   // --- QUIZ ENGINE (SMART QUIZ, TOPIC-WISE, PYQs) ---
-  const startQuizWithTopics = async (topicsPrompt, label = "Polity Quick Quiz — 10Q") => {
+  const startQuizWithTopics = async (topicsPrompt, label = 'Polity Quick Quiz — 10Q') => {
     if (!session) {
       triggerAuth();
       return;
@@ -875,13 +938,18 @@ useEffect(() => {
     setIsChatOpen(false);
     setActiveTab('practice');
     setQuizTitle(label);
-    setTestState("loading");
+    setTestState('loading');
 
     try {
       const res = await fetch(`${BACKEND_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_query: topicsPrompt, mode: "quiz", history: "", language }),
+        body: JSON.stringify({
+          user_query: topicsPrompt,
+          mode: 'quiz',
+          history: '',
+          language: backendLangPayload,
+        }),
       });
 
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
@@ -892,41 +960,41 @@ useEffect(() => {
       const questionsList = Array.isArray(parsed) ? parsed : parsed.questions;
 
       if (!questionsList || questionsList.length === 0) {
-        throw new Error("No questions returned");
+        throw new Error('No questions returned');
       }
 
       setQuiz(questionsList.slice(0, 10));
       setScore(0);
       setCurrentQIndex(0);
       setSelectedOption(null);
-      setTestState("active");
+      setTestState('active');
     } catch (e) {
-      console.error("Quiz Gen Error:", e);
-      setTestState("idle");
-      alert(`Quiz abhi load nahi ho paya (${e.message}). Ek baar phir try karo!`);
+      console.error('Quiz Gen Error:', e);
+      setTestState('idle');
+      alert(
+        isHinglish
+          ? `Quiz abhi load nahi ho paya (${e.message}). Ek baar phir try karo!`
+          : `Could not load quiz right now (${e.message}). Please try again!`
+      );
     }
   };
 
   const handleSmartQuiz = () => {
-    const weakAndSaved = [
-      'Fundamental Rights',
-      'Preamble of India',
-      ...vault.map((v) => v.title),
-    ]
+    const weakAndSaved = ['Fundamental Rights', 'Preamble of India', ...vault.map((v) => v.title)]
       .slice(0, 6)
       .join(', ');
-    startQuizWithTopics(weakAndSaved, "Polity Quick Quiz — 10Q");
+    startQuizWithTopics(weakAndSaved, 'Polity Quick Quiz — 10Q');
   };
 
   const handlePyqQuiz = () => {
     startQuizWithTopics(
-      "Actual UPSC Civil Services Prelims Previous Year Questions (2015-2024) on Indian Constitution, Preamble, Fundamental Rights, Parliament, and Judiciary",
-      "UPSC Prelims PYQs — 10Q"
+      'Actual UPSC Civil Services Prelims Previous Year Questions (2015-2024) on Indian Constitution, Preamble, Fundamental Rights, Parliament, and Judiciary',
+      'UPSC Prelims PYQs — 10Q'
     );
   };
 
   const finishTest = async () => {
-    setTestState("result");
+    setTestState('result');
     const passed = score > 5;
     const earnedXP = passed ? 10 : 5;
 
@@ -934,7 +1002,7 @@ useEffect(() => {
       confetti({ particleCount: 150, spread: 60, colors: ['#FF6B00', '#10B981', '#1A2332'] });
     }
 
-    let aiSwot = "Strengths: Good conceptual grasp.\nWeakness: Needs deeper article revision.";
+    let aiSwot = 'Strengths: Good conceptual grasp.\nWeakness: Needs deeper article revision.';
     try {
       const prompt = `Analyze this test performance: Score ${score}/${quiz.length} on ${quizTitle}. 
       Generate a brief 4-line encouraging SWOT analysis (Strengths, Weaknesses, Opportunities, Threats) addressed to the student.`;
@@ -942,12 +1010,17 @@ useEffect(() => {
       const res = await fetch(`${BACKEND_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_query: prompt, history: "", mode: "chat", language }),
+        body: JSON.stringify({
+          user_query: prompt,
+          history: '',
+          mode: 'chat',
+          language: backendLangPayload,
+        }),
       });
       const data = await res.json();
-      aiSwot = data.answer;
+      aiSwot = cleanCopy(data.answer);
     } catch (e) {
-      console.error("SWOT reflection skipped");
+      console.error('SWOT reflection skipped');
     }
 
     if (session?.user) {
@@ -955,7 +1028,7 @@ useEffect(() => {
         {
           score: score,
           total_questions: quiz.length,
-          topics_covered: quizTitle || "Polity Quick Quiz — 10Q",
+          topics_covered: quizTitle || 'Polity Quick Quiz — 10Q',
           user_id: session.user.id,
           swot_analysis: aiSwot,
         },
@@ -982,7 +1055,6 @@ useEffect(() => {
     politySubject.chapters.filter((c) => c.defaultStatus === 'mastered').length
   );
 
-  // Build dynamic chapters list for selected subject (merging Supabase saved topics)
   const getSubjectChapters = (subject) => {
     if (!subject) return [];
     const baseChapters = subject.chapters.map((ch) => {
@@ -1000,10 +1072,10 @@ useEffect(() => {
         .filter((v) => !baseTitles.has(v.title.toLowerCase()))
         .map((v) => ({
           id: `db-${v.id}`,
-          title: v.title,
+          title: cleanCopy(v.title),
           status: 'mastered',
           progress: 100,
-          concept: v.notes || 'Mastered with PolicyPath AI.',
+          concept: cleanCopy(v.notes) || 'Mastered with PolicyPath AI.',
           keyPoints: [
             'Saved directly from your AI Mentor revision.',
             'Ready for UPSC Prelims MCQ practice.',
@@ -1020,7 +1092,9 @@ useEffect(() => {
   const handleShareApp = async () => {
     const shareData = {
       title: 'PolicyPath — Your free AI mentor for UPSC',
-      text: 'Lakhs aspirants ke saath aap bhi UPSC ki tayyari karo — bilkul free! Try PolicyPath AI:',
+      text: isHinglish
+        ? 'Lakhs aspirants ke saath aap bhi UPSC ki tayyari karo — bilkul free! Try PolicyPath AI:'
+        : 'Prepare for UPSC Polity & GS with PolicyPath AI — your free AI mentor! Try it here:',
       url: 'https://policy-path-theta.vercel.app/',
     };
     try {
@@ -1104,7 +1178,7 @@ useEffect(() => {
   return (
     <div className="h-[100dvh] w-full bg-[#FFFFFF] dark:bg-[#0F1724] text-[#4B5563] dark:text-[#D1D5DB] font-sans overflow-hidden flex flex-col relative transition-colors duration-200">
       {/* TOP HEADER */}
-      <header className="px-4 sm:px-5 py-3 flex justify-between items-center z-40 bg-[#FFFFFF] dark:bg-[#1A2332] border-b border-[#E5E7EB] dark:border-[#283548]">
+      <header className="shrink-0 px-4 sm:px-5 py-3 flex justify-between items-center z-40 bg-[#FFFFFF] dark:bg-[#1A2332] border-b border-[#E5E7EB] dark:border-[#283548]">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsSidebarOpen(true)}
@@ -1129,13 +1203,13 @@ useEffect(() => {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Hindi / English Language Toggle */}
+          {/* EN / Hinglish Toggle */}
           <button
-            onClick={() => setLanguage((l) => (l === 'English' ? 'हिंदी' : 'English'))}
+            onClick={toggleLanguage}
             aria-label="Toggle language"
             className="px-2.5 py-1.5 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] bg-[#F9FAFB] dark:bg-[#0F1724] text-[12px] font-semibold text-[#FF6B00] hover:border-[#FF6B00] transition"
           >
-            🌐 {language === 'English' ? 'EN' : 'हिंदी'}
+            🌐 {language}
           </button>
 
           {/* Dark Mode Toggle */}
@@ -1194,7 +1268,7 @@ useEffect(() => {
                     </h3>
                     {isEmptyProgress ? (
                       <div className="type-caption text-[#10B981] font-semibold mt-0.5">
-                        Aaj se shuru karte hain! 💪
+                        {isHinglish ? 'Aaj se shuru karte hain! 💪' : "Let's start today! 💪"}
                       </div>
                     ) : (
                       <div className="type-caption text-[#FF6B00] font-medium mt-0.5">
@@ -1207,13 +1281,15 @@ useEffect(() => {
                 <div className="mt-4 bg-[#F9FAFB] dark:bg-[#0F1724] p-3 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548]">
                   <div className="text-[12px] font-medium text-[#111827] dark:text-white mb-1.5">
                     {isEmptyProgress
-                      ? 'Aaj se shuru karte hain! 💪'
+                      ? isHinglish
+                        ? 'Aaj se shuru karte hain! 💪'
+                        : "Start your first topic to earn XP! 💪"
                       : `⭐ ${totalXP} XP — Level ${currentLevel}: ${levelTitle}`}
                   </div>
                   <div className="w-full h-2 bg-[#E5E7EB] dark:bg-[#283548] rounded-full overflow-hidden">
                     <div
                       className="h-full bg-[#10B981] rounded-full transition-all duration-300"
-                      style={{ width: `${Math.max(xpInCurrentLevel, isEmptyProgress ? 8 : 0)}%` }}
+                      style={{ width: `${xpInCurrentLevel}%` }}
                     />
                   </div>
                   <div className="type-caption mt-1">
@@ -1285,7 +1361,7 @@ useEffect(() => {
                   <span className="type-caption">{isDarkMode ? 'Dark' : 'Light'}</span>
                 </button>
                 <button
-                  onClick={() => setLanguage((l) => (l === 'English' ? 'हिंदी' : 'English'))}
+                  onClick={toggleLanguage}
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] text-[15px] text-[#374151] dark:text-white transition"
                 >
                   <span className="flex items-center gap-3">
@@ -1346,20 +1422,24 @@ useEffect(() => {
       </AnimatePresence>
 
       {/* ===================================================================== */}
-      {/* MAIN CONTENT AREA                                                     */}
+      {/* MAIN CONTENT AREA (pb-40 CLEARS BOTH BOTTOM NAV AND FLOATING FAB)       */}
       {/* ===================================================================== */}
-      <main className="flex-1 overflow-y-auto pb-32 scroll-smooth bg-[#FFFFFF] dark:bg-[#0F1724]">
+      <main className="flex-1 min-h-0 overflow-y-auto pb-40 scroll-smooth bg-[#FFFFFF] dark:bg-[#0F1724]">
         {/* ------------------------------------------------------------------- */}
         {/* HOME SCREEN                                                         */}
         {/* ------------------------------------------------------------------- */}
         {activeTab === 'home' && (
           <div className="max-w-xl mx-auto p-5 space-y-5 animate-fade-in">
             <div>
-              <h1 className="type-h1">Namaste, {firstName}! 🙏</h1>
+              <h1 className="type-h1">
+                {isHinglish ? `Namaste, ${firstName}! 🙏` : `Welcome, ${firstName}! 👋`}
+              </h1>
               <p className="type-body mt-0.5">
                 {streakCount > 0
                   ? `Day ${streakCount} of your UPSC journey`
-                  : 'Lakhs aspirants ke saath aap bhi UPSC ki tayyari karo — bilkul free'}
+                  : isHinglish
+                  ? 'Lakhs aspirants ke saath aap bhi UPSC ki tayyari karo — bilkul free'
+                  : 'Start your UPSC preparation today — 100% free'}
               </p>
               <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-[12px] bg-[#FF6B00]/10 text-[#FF6B00] text-[12px] font-semibold">
                 {streakCount > 0 ? (
@@ -1368,7 +1448,9 @@ useEffect(() => {
                     <span>{streakCount}-day streak — keep going!</span>
                   </>
                 ) : (
-                  <span>Aaj se shuru karte hain! 💪</span>
+                  <span>
+                    {isHinglish ? 'Aaj se shuru karte hain! 💪' : "Let's start your streak today! 💪"}
+                  </span>
                 )}
               </div>
             </div>
@@ -1437,7 +1519,7 @@ useEffect(() => {
               </button>
             </div>
 
-            {/* Quick Stats Strip (True Empty States Instead of Zeros) */}
+            {/* Quick Stats Strip (Actionable Empty States Instead of Zeros) */}
             <div className="grid grid-cols-3 gap-3">
               <button
                 onClick={() => handleTabChange('learn')}
@@ -1464,7 +1546,7 @@ useEffect(() => {
                   {streakCount > 0 ? `🔥 ${streakCount}d` : '💪 Day 1'}
                 </div>
                 <div className="type-caption mt-0.5">
-                  {streakCount > 0 ? 'Streak' : 'Shuru karo'}
+                  {streakCount > 0 ? 'Streak' : isHinglish ? 'Shuru karo' : 'Begin'}
                 </div>
               </div>
             </div>
@@ -1473,15 +1555,21 @@ useEffect(() => {
             <div className="surface-card p-4 bg-[#F9FAFB] dark:bg-[#1A2332] flex items-start gap-3">
               <span className="text-xl shrink-0">💡</span>
               <p className="type-body text-[#111827] dark:text-[#F9FAFB] font-medium">
-                {hasQuizHistory
-                  ? '"Pichle hafte se 15% improvement hua hai. Aise hi chalte raho!"'
-                  : '"Har topper ne zero se shuru kiya tha. Aaj ek topic padh kar apna streak start karo!"'}
+                {isHinglish
+                  ? hasQuizHistory
+                    ? '"Pichle hafte se 15% improvement hua hai. Aise hi chalte raho!"'
+                    : '"Har topper ne zero se shuru kiya tha. Aaj ek topic padh kar apna streak start karo!"'
+                  : hasQuizHistory
+                  ? '"Consistent daily revision builds UPSC Prelims confidence. Keep going!"'
+                  : '"Every UPSC topper started from zero. Complete one topic today to build momentum!"'}
               </p>
             </div>
 
             {/* Continue Learning Section */}
             <div className="space-y-2.5">
-              <h3 className="type-h3">Jahan chhoda tha, wahan se shuru karo</h3>
+              <h3 className="type-h3">
+                {isHinglish ? 'Jahan chhoda tha, wahan se shuru karo' : 'Pick up where you left off'}
+              </h3>
               <button
                 onClick={() => {
                   const subj = SUBJECTS_DATA[0];
@@ -1539,6 +1627,7 @@ useEffect(() => {
                 <span className="text-[12px] font-bold text-[#10B981]">Invite →</span>
               </button>
             </div>
+            <div className="h-10" />
           </div>
         )}
 
@@ -1551,16 +1640,21 @@ useEffect(() => {
               <>
                 <div>
                   <h1 className="type-h1">Topics You Know ✅</h1>
-                  <p className="type-body mt-0.5">Jo padh liya, woh yahan safe hai</p>
+                  <p className="type-body mt-0.5">
+                    {isHinglish
+                      ? 'Jo padh liya, woh yahan safe hai'
+                      : 'All your mastered UPSC topics in one place'}
+                  </p>
                 </div>
 
                 <div className="space-y-3">
                   {SUBJECTS_DATA.map((subj) => {
                     const masteredNum =
                       subj.id === 'polity' ? Math.min(polityMasteredCount, subj.totalTopics) : 0;
-                    const pct = subj.totalTopics
-                      ? Math.round((masteredNum / subj.totalTopics) * 100)
-                      : 0;
+                    const pct =
+                      subj.totalTopics && masteredNum > 0
+                        ? Math.round((masteredNum / subj.totalTopics) * 100)
+                        : 0;
 
                     return (
                       <button
@@ -1590,16 +1684,19 @@ useEffect(() => {
 
                         {subj.totalTopics && (
                           <div className="w-full h-2 bg-[#E5E7EB] dark:bg-[#283548] rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-[#10B981] rounded-full transition-all"
-                              style={{ width: `${Math.max(pct, masteredNum > 0 ? 12 : 4)}%` }}
-                            />
+                            {pct > 0 && (
+                              <div
+                                className="h-full bg-[#10B981] rounded-full transition-all"
+                                style={{ width: `${pct}%` }}
+                              />
+                            )}
                           </div>
                         )}
                       </button>
                     );
                   })}
                 </div>
+                <div className="h-12" />
               </>
             )}
 
@@ -1670,6 +1767,7 @@ useEffect(() => {
                       );
                     })}
                   </div>
+                  <div className="h-12" />
                 </>
               );
             })()}
@@ -1720,7 +1818,7 @@ useEffect(() => {
 
                   {loadingLessonAI && (
                     <div className="bg-[#F9FAFB] dark:bg-[#0F1724] p-3.5 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] type-caption">
-                      🤖 PolicyPath soch raha hai... preparing UPSC exam notes
+                      🤖 Preparing UPSC Prelims & Mains exam notes...
                     </div>
                   )}
                   {aiLessonExtra && (
@@ -1761,6 +1859,7 @@ useEffect(() => {
                     </button>
                   </div>
                 </div>
+                <div className="h-12" />
               </div>
             )}
           </div>
@@ -1774,9 +1873,13 @@ useEffect(() => {
             {testState === 'idle' && (
               <div className="space-y-5">
                 <div>
-                  <h1 className="type-h1">✍️ Thoda practice karte hain?</h1>
+                  <h1 className="type-h1">
+                    {isHinglish ? '✍️ Thoda practice karte hain?' : '✍️ Ready for quick practice?'}
+                  </h1>
                   <p className="type-body italic mt-1">
-                    "Revision ke bina preparation adhuri hai"
+                    {isHinglish
+                      ? '"Revision ke bina preparation adhuri hai"'
+                      : '"Consistent practice turns concepts into UPSC Prelims marks"'}
                   </p>
                 </div>
 
@@ -1820,6 +1923,7 @@ useEffect(() => {
                     Start PYQs →
                   </button>
                 </div>
+                <div className="h-12" />
               </div>
             )}
 
@@ -1855,6 +1959,7 @@ useEffect(() => {
                     </button>
                   ))}
                 </div>
+                <div className="h-12" />
               </div>
             )}
 
@@ -1917,15 +2022,16 @@ useEffect(() => {
                       : 'bg-[#E5E7EB] dark:bg-[#283548] text-[#9CA3AF] cursor-not-allowed'
                   }`}
                 >
-                  {currentQIndex + 1 === quiz.length ? "Finish practice" : "Next question →"}
+                  {currentQIndex + 1 === quiz.length ? 'Finish practice' : 'Next question →'}
                 </button>
+                <div className="h-12" />
               </div>
             )}
 
             {testState === 'result' && (
               <div className="surface-card-elevated p-8 text-center space-y-5 mt-6">
                 <h2 className="type-h2">
-                  {score >= 6 ? 'Shabaash! Great effort 🎉' : 'Good attempt! Keep going 💪'}
+                  {score >= 6 ? 'Great effort! 🎉' : 'Good attempt! Keep going 💪'}
                 </h2>
                 <div className="type-stat">
                   {score}{' '}
@@ -1933,12 +2039,12 @@ useEffect(() => {
                 </div>
                 <div className="inline-block bg-[#10B981]/10 text-[#10B981] text-[12px] font-semibold px-3 py-1 rounded-[12px]">
                   {score >= 6
-                    ? 'Improvement detected! +10 XP earned 📈'
-                    : 'Har topper ne zero se shuru kiya tha. +5 XP earned!'}
+                    ? 'Strong performance! +10 XP earned 📈'
+                    : 'Every topper started from zero. +5 XP earned!'}
                 </div>
                 <p className="type-body">
                   {score < 6
-                    ? 'Thoda aur revise karein toh score aur badhega!'
+                    ? 'A quick revision will boost your accuracy!'
                     : 'Check Progress for your detailed AI SWOT breakdown.'}
                 </p>
                 {score < 6 && (
@@ -1961,7 +2067,7 @@ useEffect(() => {
         )}
 
         {/* ------------------------------------------------------------------- */}
-        {/* PROGRESS SCREEN (TRUE EMPTY STATE + GROWTH TRAJECTORY)              */}
+        {/* PROGRESS SCREEN (FIXED BADGE LOGIC + CLEAN QUIZ CARDS + FAB CLEAR)  */}
         {/* ------------------------------------------------------------------- */}
         {activeTab === 'progress' && (
           <div className="max-w-xl mx-auto p-5 space-y-5 animate-fade-in">
@@ -1970,9 +2076,11 @@ useEffect(() => {
             {!hasQuizHistory ? (
               <div className="surface-card-elevated p-7 text-center space-y-4">
                 <div className="text-4xl">🚀</div>
-                <h2 className="type-h2">Aaj se shuru karte hain! 💪</h2>
+                <h2 className="type-h2">
+                  {isHinglish ? 'Aaj se shuru karte hain! 💪' : "Let's start your progress chart! 💪"}
+                </h2>
                 <p className="type-body">
-                  "Har topper ne zero se shuru kiya tha. Apna pehla 10-question Polity quiz solve karo aur apna growth chart unlock karo!"
+                  "Every UPSC topper started from zero. Take your first 10-question Polity quiz to unlock your accuracy and growth insights!"
                 </p>
                 <div className="inline-block bg-[#10B981]/10 text-[#10B981] text-[12px] font-semibold px-3 py-1 rounded-[12px]">
                   ✅ {polityMasteredCount} topics already in Topics You Know
@@ -2006,17 +2114,19 @@ useEffect(() => {
                       Your Growth Trajectory
                     </h3>
                     <span className="text-[12px] font-bold text-[#10B981] bg-[#10B981]/10 px-2.5 py-0.5 rounded-[12px]">
-                      {examResults.length} {examResults.length === 1 ? 'Quiz' : 'Quizzes'} Done ↑
+                      {examResults.length} {examResults.length === 1 ? 'Quiz' : 'Quizzes'} Completed
                     </span>
                   </div>
                   <div className="w-full h-2.5 bg-[#E5E7EB] dark:bg-[#283548] rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-[#10B981] rounded-full transition-all"
-                      style={{ width: `${Math.max(avgScore, 15)}%` }}
-                    />
+                    {avgScore > 0 && (
+                      <div
+                        className="h-full bg-[#10B981] rounded-full transition-all"
+                        style={{ width: `${avgScore}%` }}
+                      />
+                    )}
                   </div>
                   <p className="type-caption text-[#10B981] font-medium">
-                    "Har quiz ke saath tumhari clarity aur strong ho rahi hai!"
+                    "Every practice quiz strengthens your UPSC Prelims accuracy!"
                   </p>
                 </div>
 
@@ -2024,14 +2134,6 @@ useEffect(() => {
                   <div className="surface-card p-5 text-center space-y-1">
                     <div className="type-stat">📈 {avgScore}%</div>
                     <div className="type-caption">Accuracy</div>
-                    {isLowAccuracy && (
-                      <button
-                        onClick={handleSmartQuiz}
-                        className="text-[11px] font-semibold text-[#FF6B00] hover:underline pt-1 block mx-auto"
-                      >
-                        Score low? Let's practice →
-                      </button>
-                    )}
                   </div>
                   <div className="surface-card p-5 text-center">
                     <div className="type-stat text-[#1A2332] dark:text-white">
@@ -2088,6 +2190,7 @@ useEffect(() => {
                   </button>
                 </div>
 
+                {/* Recent Quizzes (Strict Badge Conditional + Clean Card Layout) */}
                 <div className="space-y-3">
                   <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
                     Recent Quizzes
@@ -2095,13 +2198,33 @@ useEffect(() => {
                   {examResults.slice(0, 5).map((res, i) => {
                     const pct = Math.round((res.score / res.total_questions) * 100);
                     const prevRes = examResults[i + 1];
-                    const improved = prevRes ? res.score >= prevRes.score : true;
+
+                    // Fixed conditional logic: never show "Improvement detected!" on 0/10
+                    let badgeText = null;
+                    let badgeStyle = '';
+                    if (prevRes) {
+                      if (res.score > prevRes.score && res.score > 0) {
+                        badgeText = 'Improvement detected! 📈';
+                        badgeStyle = 'bg-[#10B981]/10 text-[#10B981]';
+                      } else if (res.score < prevRes.score || res.score === 0) {
+                        badgeText = 'Needs Revision ⚠️';
+                        badgeStyle = 'bg-[#FF6B00]/10 text-[#FF6B00]';
+                      }
+                    } else {
+                      if (res.score >= 6) {
+                        badgeText = 'Great Start! 📈';
+                        badgeStyle = 'bg-[#10B981]/10 text-[#10B981]';
+                      } else if (res.score < 5) {
+                        badgeText = 'Needs Revision ⚠️';
+                        badgeStyle = 'bg-[#FF6B00]/10 text-[#FF6B00]';
+                      }
+                    }
 
                     return (
                       <div key={i} className="surface-card p-4 space-y-2.5">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-2">
                           <div className="text-[15px] font-semibold text-[#111827] dark:text-white">
-                            {res.topics_covered || 'Polity Quick Quiz — 10Q'} •{' '}
+                            {cleanCopy(res.topics_covered) || 'Polity Quick Quiz — 10Q'} •{' '}
                             <span className="type-caption font-normal">
                               {new Date(res.created_at).toLocaleDateString('en-IN', {
                                 day: 'numeric',
@@ -2109,9 +2232,11 @@ useEffect(() => {
                               })}
                             </span>
                           </div>
-                          {improved && (
-                            <span className="text-[11px] font-semibold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded-[12px]">
-                              Improvement detected! 📈
+                          {badgeText && (
+                            <span
+                              className={`text-[11px] font-semibold px-2 py-0.5 rounded-[12px] shrink-0 ${badgeStyle}`}
+                            >
+                              {badgeText}
                             </span>
                           )}
                         </div>
@@ -2121,40 +2246,35 @@ useEffect(() => {
                             {res.score}/{res.total_questions}
                           </span>
                           <div className="flex-1 h-2 bg-[#E5E7EB] dark:bg-[#283548] rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${
-                                pct >= 50 ? 'bg-[#10B981]' : 'bg-[#FF6B00]'
-                              }`}
-                              style={{ width: `${Math.max(pct, 10)}%` }}
-                            />
+                            {pct > 0 && (
+                              <div
+                                className={`h-full rounded-full ${
+                                  pct >= 50 ? 'bg-[#10B981]' : 'bg-[#FF6B00]'
+                                }`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            )}
                           </div>
                           <span className="type-caption font-semibold">{pct}%</span>
                         </div>
 
-                        <div className="flex items-center justify-between pt-0.5">
+                        <div>
                           <button
                             onClick={() => setViewingSwot(res)}
                             className="text-[13px] font-semibold text-[#FF6B00] hover:underline"
                           >
                             View Analysis →
                           </button>
-                          {pct < 50 && (
-                            <button
-                              onClick={handleSmartQuiz}
-                              className="text-[12px] font-medium text-[#6B7280] hover:text-[#FF6B00]"
-                            >
-                              Score low? Let's practice →
-                            </button>
-                          )}
                         </div>
                       </div>
                     );
                   })}
                 </div>
+                <div className="h-12" />
               </>
             )}
 
-            {viewingSwot && (
+              {viewingSwot && (
               <div className="fixed inset-0 z-[70] bg-[#111827]/60 flex items-center justify-center p-4 animate-fade-in">
                 <div className="surface-card-elevated w-full max-w-sm p-7 relative max-h-[80vh] overflow-y-auto">
                   <button
@@ -2171,7 +2291,7 @@ useEffect(() => {
                     <FormattedAIMessage
                       text={
                         viewingSwot.swot_analysis ||
-                        "Keep practicing — detailed analysis unlocks on your next quiz!"
+                        'Keep practicing — detailed analysis unlocks on your next quiz!'
                       }
                     />
                   </div>
@@ -2191,7 +2311,7 @@ useEffect(() => {
             <div className="surface-card overflow-hidden">
               {leaderboard.length === 0 ? (
                 <div className="p-6 text-center type-body">
-                  Aaj se shuru karte hain! 💪 Complete a topic or quiz to appear on the leaderboard.
+                  Complete a topic or quiz to appear on the Hall of Fame! 💪
                 </div>
               ) : (
                 leaderboard.map((user, index) => (
@@ -2228,6 +2348,7 @@ useEffect(() => {
                 ))
               )}
             </div>
+            <div className="h-12" />
           </div>
         )}
 
@@ -2244,7 +2365,9 @@ useEffect(() => {
                   <h2 className="type-h2">{displayName}</h2>
                   <span className="inline-block mt-1 text-[12px] font-medium bg-[#10B981]/10 text-[#10B981] px-2.5 py-0.5 rounded-[12px]">
                     {isEmptyProgress
-                      ? 'Aaj se shuru karte hain! 💪'
+                      ? isHinglish
+                        ? 'Aaj se shuru karte hain! 💪'
+                        : "Let's start today! 💪"
                       : `Level ${currentLevel}: ${levelTitle} • ${totalXP} XP`}
                   </span>
                 </div>
@@ -2281,7 +2404,7 @@ useEffect(() => {
               <div className="fixed inset-0 z-[60] bg-[#111827]/60 flex items-center justify-center p-4">
                 <div className="surface-card-elevated w-full max-w-md p-6">
                   <h2 className="type-h2 mb-4">
-                    {isNewUser ? "Set up your Student ID" : "Edit your details"}
+                    {isNewUser ? 'Set up your Student ID' : 'Edit your details'}
                   </h2>
                   <div className="space-y-3">
                     <input
@@ -2328,6 +2451,7 @@ useEffect(() => {
                 </div>
               </div>
             )}
+            <div className="h-12" />
           </div>
         )}
       </main>
@@ -2348,7 +2472,7 @@ useEffect(() => {
       )}
 
       {/* ===================================================================== */}
-      {/* AI CHAT (POLICYPATH MENTOR FULL-SCREEN DRAWER — ZERO NAV OVERLAP)     */}
+      {/* AI CHAT MODAL (SOLID STICKY HEADER + TOP/BOTTOM PADDING CLEARANCE)    */}
       {/* ===================================================================== */}
       <AnimatePresence>
         {isChatOpen && (
@@ -2357,10 +2481,10 @@ useEffect(() => {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-            className="fixed inset-0 z-50 bg-[#FFFFFF] dark:bg-[#0F1724] flex flex-col"
+            className="fixed inset-0 z-50 bg-[#FFFFFF] dark:bg-[#0F1724] flex flex-col overflow-hidden"
           >
-            {/* Chat Header with Language Switch */}
-            <div className="px-4 sm:px-5 py-3.5 bg-[#FFFFFF] dark:bg-[#1A2332] border-b border-[#E5E7EB] dark:border-[#283548] flex items-center justify-between gap-2">
+            {/* Solid Top Bar (Zero Clipping) */}
+            <div className="shrink-0 z-50 px-4 sm:px-5 py-3.5 bg-[#FFFFFF] dark:bg-[#1A2332] border-b border-[#E5E7EB] dark:border-[#283548] flex items-center justify-between gap-2 shadow-sm">
               <div>
                 <h2 className="type-h2 flex items-center gap-2">
                   <span>🤖</span>
@@ -2370,27 +2494,27 @@ useEffect(() => {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setLanguage((l) => (l === 'English' ? 'हिंदी' : 'English'))}
-                  className="px-2.5 py-1.5 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] text-[12px] font-semibold text-[#FF6B00] hover:border-[#FF6B00] transition"
+                  onClick={toggleLanguage}
+                  className="px-2.5 py-1.5 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] bg-[#F9FAFB] dark:bg-[#0F1724] text-[12px] font-semibold text-[#FF6B00] hover:border-[#FF6B00] transition"
                 >
                   🌐 {language}
                 </button>
                 <button
                   onClick={() => setIsChatOpen(false)}
-                  className="px-3 py-1.5 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] text-[12px] font-semibold text-[#111827] dark:text-white hover:border-[#FF6B00] transition"
+                  className="px-3 py-1.5 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] bg-[#F9FAFB] dark:bg-[#0F1724] text-[12px] font-semibold text-[#111827] dark:text-white hover:border-[#FF6B00] transition"
                 >
                   Close ✕
                 </button>
               </div>
             </div>
 
-            {/* Chat Messages Feed */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 max-w-2xl w-full mx-auto">
+            {/* Scrollable Chat Feed with Proper Top & Bottom Clearance */}
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 pt-5 pb-24 space-y-4 max-w-2xl w-full mx-auto">
               {/* AI Welcome Card */}
               <div className="surface-card-elevated p-5 space-y-3">
                 <div className="text-[12px] font-bold text-[#FF6B00]">AI Mentor</div>
                 <p className="type-body text-[#111827] dark:text-white font-medium">
-                  {AI_WELCOME_MSG}
+                  {aiWelcomeMessage}
                 </p>
                 <div className="pt-1">
                   <div className="type-caption mb-2">Quick options:</div>
@@ -2464,7 +2588,7 @@ useEffect(() => {
                         <button
                           onClick={() =>
                             sendChatMessage(
-                              "Explain this more simply in easy Hinglish/English with a practical Indian example."
+                              'Explain this more simply in easy language with a practical Indian example.'
                             )
                           }
                           className="px-3 py-1.5 rounded-[12px] bg-[#F9FAFB] dark:bg-[#0F1724] border border-[#E5E7EB] dark:border-[#283548] hover:border-[#1A2332] text-[#374151] dark:text-[#D1D5DB] text-[12px] font-medium transition"
@@ -2482,7 +2606,11 @@ useEffect(() => {
                 <div className="flex justify-start">
                   <div className="surface-card px-4 py-3 flex items-center gap-2.5 text-[13px] font-medium text-[#6B7280] dark:text-[#9CA3AF]">
                     <span className="w-2 h-2 rounded-full bg-[#FF6B00] animate-bounce" />
-                    <span>PolicyPath soch raha hai... 🤔</span>
+                    <span>
+                      {isHinglish
+                        ? 'PolicyPath soch raha hai... 🤔'
+                        : 'PolicyPath Mentor is drafting your note... 🤔'}
+                    </span>
                   </div>
                 </div>
               )}
@@ -2490,14 +2618,14 @@ useEffect(() => {
             </div>
 
             {/* Bottom Input Bar with Voice (🎤) & Send (➤) */}
-            <div className="p-3.5 bg-[#FFFFFF] dark:bg-[#1A2332] border-t border-[#E5E7EB] dark:border-[#283548]">
+            <div className="shrink-0 p-3.5 bg-[#FFFFFF] dark:bg-[#1A2332] border-t border-[#E5E7EB] dark:border-[#283548]">
               <div className="max-w-2xl mx-auto flex items-center gap-2">
                 <input
                   ref={chatInputRef}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && sendChatMessage()}
-                  placeholder={isListening ? "Bolna shuru karo... listening" : "Type or speak your doubt..."}
+                  placeholder={isListening ? 'Listening... speak now' : 'Type or speak your doubt...'}
                   disabled={loading}
                   className="flex-1 bg-[#F9FAFB] dark:bg-[#0F1724] border border-[#E5E7EB] dark:border-[#283548] rounded-[12px] px-4 py-3 text-[15px] text-[#111827] dark:text-white focus:outline-none focus:border-[#FF6B00] placeholder-[#9CA3AF]"
                 />
@@ -2544,19 +2672,21 @@ useEffect(() => {
             </button>
             <h2 className="type-h2">❓ Help & Feedback</h2>
             <p className="type-body">
-              Koi bhi doubt ho ya feedback dena ho, tap "Ask Doubt 💬" anytime — main hamesha yahin hoon!
+              {isHinglish
+                ? 'Koi bhi doubt ho ya feedback dena ho, tap "Ask Doubt 💬" anytime — main hamesha yahin hoon!'
+                : 'Have a UPSC question or product feedback? Tap "Ask Doubt 💬" anytime — your mentor is always here!'}
             </p>
             <button
               onClick={() => setShowHelpModal(false)}
               className="w-full bg-[#1A2332] text-white font-semibold py-2.5 rounded-[12px] text-[14px]"
             >
-              Samajh gaya 👍
+              Got it 👍
             </button>
           </div>
         </div>
       )}
 
-        {/* ===================================================================== */}
+      {/* ===================================================================== */}
       {/* BOTTOM NAVIGATION (Home | Learn | Practice | Progress)                */}
       {/* ===================================================================== */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#FFFFFF] dark:bg-[#1A2332] border-t border-[#E5E7EB] dark:border-[#283548] px-2 py-2">
