@@ -1,0 +1,24 @@
+{
+  "short_name": "PolicyPath",
+  "name": "PolicyPath AI — Your Free UPSC Mentor",
+  "description": "Learn Indian Polity, Economy, and GS with PolicyPath AI — works offline for your saved notes.",
+  "icons": [
+    {
+      "src": "/parliament-emblem.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/parliament-emblem.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FF6B00",
+  "display": "standalone",
+  "orientation": "portrait"
+}
