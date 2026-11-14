@@ -10,7 +10,7 @@ const BACKEND_URL = "https://policy-path-ai-backend-1.onrender.com";
 const AI_WELCOME_MSG =
   "Namaste! 🙏 Main tumhara AI mentor hoon. Constitution, Polity, Economy — kuch bhi pucho. Shuru karte hain?";
 
-// --- CURRICULUM DATA FOR 2.2 LEARN & 2.3 PRACTICE ---
+// --- CURRICULUM DATA FOR LEARN & PRACTICE ---
 const SUBJECTS_DATA = [
   {
     id: 'polity',
@@ -184,9 +184,10 @@ const SUBJECTS_DATA = [
   },
 ];
 
-// --- HELPER: CLEAN MARKDOWN & STRUCTURED SECTIONS FOR AI CHAT ---
+// --- HELPER: STRUCTURED SECTION CARD & CLEAN MARKDOWN RENDERER (P0 + P2) ---
 function FormattedAIMessage({ text }) {
-  const lines = text.split('\n');
+  if (!text) return null;
+  const sectionIcons = ['📌', '🔑', '📚', '⚖️', '📝', '👉'];
 
   const renderInlineBold = (str) => {
     const parts = str.split(/(\*\*[^*]+\*\*)/g);
@@ -202,47 +203,79 @@ function FormattedAIMessage({ text }) {
     });
   };
 
+  const rawLines = text.split('\n');
+  const blocks = [];
+  let currentBlock = null;
+
+  rawLines.forEach((rawLine) => {
+    const trimmed = rawLine.trim();
+    if (!trimmed) return;
+
+    const startsWithSectionIcon = sectionIcons.some((icon) => trimmed.startsWith(icon));
+    if (startsWithSectionIcon) {
+      if (currentBlock) blocks.push(currentBlock);
+      currentBlock = { header: trimmed, items: [] };
+    } else if (currentBlock) {
+      currentBlock.items.push(trimmed);
+    } else {
+      blocks.push({ header: null, items: [trimmed] });
+    }
+  });
+  if (currentBlock) blocks.push(currentBlock);
+
   return (
-    <div className="space-y-2 text-[15px] leading-[1.6] text-[#4B5563] dark:text-[#D1D5DB]">
-      {lines.map((rawLine, index) => {
-        const line = rawLine.trim();
-        if (!line) return <div key={index} className="h-1" />;
-
-        if (line.startsWith('###') || line.startsWith('##')) {
-          const cleanHeading = line.replace(/^#+\s*/, '').replace(/\*\*/g, '');
-          return (
-            <div
-              key={index}
-              className="pt-2 pb-0.5 font-semibold text-[16px] text-[#111827] dark:text-white"
-            >
-              {cleanHeading}
-            </div>
-          );
-        }
-
-        if (/^[-*•]\s+/.test(line)) {
-          const content = line.replace(/^[-*•]\s+/, '');
-          return (
-            <div key={index} className="flex items-start gap-2 pl-1">
-              <span className="text-[#FF6B00] font-bold mt-0.5">•</span>
-              <div className="flex-1">{renderInlineBold(content)}</div>
-            </div>
-          );
-        }
-
-        const numMatch = line.match(/^(\d+\.)\s+(.*)/);
-        if (numMatch) {
-          return (
-            <div key={index} className="flex items-start gap-2 pl-1">
-              <span className="font-semibold text-[#1A2332] dark:text-[#FF6B00]">
-                {numMatch[1]}
-              </span>
-              <div className="flex-1">{renderInlineBold(numMatch[2])}</div>
-            </div>
-          );
-        }
-
-        return <p key={index}>{renderInlineBold(line)}</p>;
+    <div className="space-y-2.5 text-[15px] leading-[1.6] text-[#4B5563] dark:text-[#D1D5DB]">
+      {blocks.map((block, bIdx) => {
+        const isStructuredCard = Boolean(block.header);
+        return (
+          <div
+            key={bIdx}
+            className={
+              isStructuredCard
+                ? 'bg-[#F9FAFB] dark:bg-[#0F1724] border border-[#E5E7EB] dark:border-[#283548] rounded-[12px] p-3.5 space-y-1.5'
+                : 'space-y-1.5'
+            }
+          >
+            {block.header && (
+              <div className="font-semibold text-[15px] text-[#111827] dark:text-white">
+                {renderInlineBold(block.header.replace(/^#+\s*/, ''))}
+              </div>
+            )}
+            {block.items.map((line, lIdx) => {
+              if (line.startsWith('###') || line.startsWith('##')) {
+                return (
+                  <div
+                    key={lIdx}
+                    className="pt-1 font-semibold text-[15px] text-[#111827] dark:text-white"
+                  >
+                    {line.replace(/^#+\s*/, '').replace(/\*\*/g, '')}
+                  </div>
+                );
+              }
+              if (/^[-*•]\s+/.test(line)) {
+                const content = line.replace(/^[-*•]\s+/, '');
+                return (
+                  <div key={lIdx} className="flex items-start gap-2 pl-0.5">
+                    <span className="text-[#FF6B00] font-bold mt-0.5">•</span>
+                    <div className="flex-1">{renderInlineBold(content)}</div>
+                  </div>
+                );
+              }
+              const numMatch = line.match(/^(\d+\.)\s+(.*)/);
+              if (numMatch) {
+                return (
+                  <div key={lIdx} className="flex items-start gap-2 pl-0.5">
+                    <span className="font-semibold text-[#1A2332] dark:text-[#FF6B00]">
+                      {numMatch[1]}
+                    </span>
+                    <div className="flex-1">{renderInlineBold(numMatch[2])}</div>
+                  </div>
+                );
+              }
+              return <p key={lIdx}>{renderInlineBold(line)}</p>;
+            })}
+          </div>
+        );
       })}
     </div>
   );
@@ -312,7 +345,7 @@ export default function App() {
     return <div className="h-screen w-screen bg-[#FFFFFF] dark:bg-[#0F1724]" />;
   }
 
-  // EXPLICIT LANDING PAGE (Phase 3 Tagline + First Open Copy)
+  // EXPLICIT LANDING PAGE
   if (!session && !isGuestMode) {
     return (
       <div className="h-[100dvh] w-screen flex flex-col items-center justify-center bg-[#F9FAFB] dark:bg-[#0F1724] overflow-y-auto px-4 py-8 relative">
@@ -369,7 +402,6 @@ export default function App() {
         toggleDarkMode={() => setIsDarkMode((d) => !d)}
       />
 
-      {/* Auth Modal overlay triggers when protected feature clicked mid-app */}
       <AnimatePresence>
         {showAuthModal && !session && (
           <motion.div
@@ -417,23 +449,84 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
   const [activeTab, setActiveTab] = useState('home'); // 'home' | 'learn' | 'practice' | 'progress' | 'leaderboard' | 'profile'
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [language, setLanguage] = useState('English'); // 'English' | 'हिंदी'
+  const [language, setLanguage] = useState(() => {
+    try {
+      return localStorage.getItem('pp_lang') || 'English';
+    } catch {
+      return 'English';
+    }
+  });
+  const [reminderEnabled, setReminderEnabled] = useState(() => {
+    try {
+      return localStorage.getItem('pp_reminder_enabled') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [showHelpModal, setShowHelpModal] = useState(false);
 
-  // --- 2.1 HOME TODAY'S PLAN STATE ---
+  // Persist language choice
+  useEffect(() => {
+    try {
+      localStorage.setItem('pp_lang', language);
+    } catch {}
+  }, [language]);
+
+  // --- P2: DAILY STUDY REMINDER OPT-IN & SCHEDULER ---
+  const handleEnableReminders = async () => {
+    if (!('Notification' in window)) {
+      alert("Notifications are not supported in this browser, par hum tumhe app mein daily yaad dilate rahenge! 💪");
+      return;
+    }
+    if (reminderEnabled) {
+      setReminderEnabled(false);
+      localStorage.setItem('pp_reminder_enabled', 'false');
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      setReminderEnabled(true);
+      localStorage.setItem('pp_reminder_enabled', 'true');
+      localStorage.setItem('pp_reminder_time', '20:00');
+      new Notification('PolicyPath Mentor 🏛️', {
+        body: 'Shabaash! Daily 8:00 PM UPSC study reminder set. Consistency se hi selection hota hai! 🔥',
+        icon: '/parliament-emblem.png',
+      });
+    } else {
+      alert("Please allow notifications in your browser settings so PolicyPath can send daily study reminders.");
+    }
+  };
+
+useEffect(() => {
+    if (!reminderEnabled || !('Notification' in window) || Notification.permission !== 'granted') return;
+    const interval = setInterval(() => {
+      const now = new Date();
+      const todayKey = now.toDateString();
+      if (now.getHours() === 20 && now.getMinutes() === 0 && localStorage.getItem('pp_reminder_last_sent') !== todayKey) {
+        localStorage.setItem('pp_reminder_last_sent', todayKey);
+        new Notification('PolicyPath Daily Revision ⏰', {
+          body: 'Aaj ka 10-question Polity quiz complete kiya kya? Chalo 5 minute revise karte hain! 🔥',
+          icon: '/parliament-emblem.png',
+        });
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [reminderEnabled]);
+
+  // --- HOME TODAY'S PLAN STATE ---
   const [todaysPlan, setTodaysPlan] = useState([
     { id: 'revise-fr', label: 'Revise: Fundamental Rights', done: false, action: 'lesson', subjectId: 'polity', chapterId: 'fundamental-rights' },
     { id: 'new-dpsp', label: 'New: Directive Principles', done: false, action: 'lesson', subjectId: 'polity', chapterId: 'directive-principles' },
     { id: 'practice-polity', label: 'Practice: 10 MCQs on Polity', done: false, action: 'practice' },
   ]);
 
-  // --- 2.2 LEARN STATE ---
+  // --- LEARN STATE ---
   const [selectedSubjectId, setSelectedSubjectId] = useState(null);
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [aiLessonExtra, setAiLessonExtra] = useState('');
   const [loadingLessonAI, setLoadingLessonAI] = useState(false);
 
-  // --- 2.3 PRACTICE STATE ---
+  // --- PRACTICE STATE ---
   const [testState, setTestState] = useState("idle"); // 'idle' | 'topic_picker' | 'loading' | 'active' | 'result'
   const [quizTitle, setQuizTitle] = useState("Polity Quick Quiz — 10Q");
   const [quiz, setQuiz] = useState([]);
@@ -441,7 +534,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
   const [score, setScore] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
 
-  // --- 2.5 AI CHAT STATE (Migrate old English welcome string to Phase 3 welcome) ---
+  // --- AI CHAT STATE ---
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem(userStorageKey);
     if (!saved) return [];
@@ -460,7 +553,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
 
-  // --- SUPABASE DATA STATES (Keep internal table name 'vault' intact) ---
+  // --- SUPABASE DATA STATES ---
   const [vault, setVault] = useState([]);
   const [examResults, setExamResults] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
@@ -623,7 +716,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
     }
   }, [messages, userStorageKey, isChatOpen]);
 
-  // --- SAVE TOPIC TO "TOPICS YOU KNOW ✅" (SUPABASE 'vault' TABLE) ---
+  // --- SAVE TOPIC TO "TOPICS YOU KNOW ✅" ---
   const saveTopicToMastered = async (title, notes) => {
     if (!session) {
       triggerAuth();
@@ -647,7 +740,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
     }
   };
 
-  // --- 2.2 OPEN LESSON & FETCH AI DEEP-DIVE ---
+  // --- OPEN LESSON & FETCH AI DEEP-DIVE ---
   const openLesson = async (chapter) => {
     setSelectedLesson(chapter);
     setAiLessonExtra('');
@@ -657,7 +750,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       const res = await fetch(`${BACKEND_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_query: prompt, history: "", mode: "chat" }),
+        body: JSON.stringify({ user_query: prompt, history: "", mode: "chat", language }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -671,7 +764,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
     }
   };
 
-  // --- 2.5 AI CHAT SEND ---
+  // --- AI CHAT SEND ---
   const sendChatMessage = async (customPrompt) => {
     const textToSend = (customPrompt ?? query).trim();
     if (!textToSend || loading) return;
@@ -687,19 +780,15 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       .map((m) => `${m.role}: ${m.text}`)
       .join("\n");
 
-    const langInstruction =
-      language === 'हिंदी'
-        ? " (Reply in warm, encouraging Hinglish — simple Hindi + English UPSC terms)"
-        : "";
-
     try {
       const res = await fetch(`${BACKEND_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_query: textToSend + langInstruction,
+          user_query: textToSend,
           history: historyContext,
           mode: "chat",
+          language,
         }),
       });
 
@@ -754,7 +843,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
     }
   };
 
-  // --- 2.5 VOICE INPUT (🎤 FOR HINDI/ENGLISH THINKING STUDENTS) ---
+ // --- VOICE INPUT (🎤 FOR HINDI/ENGLISH THINKING STUDENTS) ---
   const handleVoiceInput = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -777,7 +866,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
     recognition.start();
   };
 
-  // --- 2.3 QUIZ ENGINE (SMART QUIZ, TOPIC-WISE, PYQs) ---
+  // --- QUIZ ENGINE (SMART QUIZ, TOPIC-WISE, PYQs) ---
   const startQuizWithTopics = async (topicsPrompt, label = "Polity Quick Quiz — 10Q") => {
     if (!session) {
       triggerAuth();
@@ -792,7 +881,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       const res = await fetch(`${BACKEND_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_query: topicsPrompt, mode: "quiz", history: "" }),
+        body: JSON.stringify({ user_query: topicsPrompt, mode: "quiz", history: "", language }),
       });
 
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
@@ -839,7 +928,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
   const finishTest = async () => {
     setTestState("result");
     const passed = score > 5;
-    const earnedXP = passed ? 10 : 5; // Reward effort even on low scores!
+    const earnedXP = passed ? 10 : 5;
 
     if (score >= 7) {
       confetti({ particleCount: 150, spread: 60, colors: ['#FF6B00', '#10B981', '#1A2332'] });
@@ -853,7 +942,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       const res = await fetch(`${BACKEND_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_query: prompt, history: "", mode: "chat" }),
+        body: JSON.stringify({ user_query: prompt, history: "", mode: "chat", language }),
       });
       const data = await res.json();
       aiSwot = data.answer;
@@ -876,15 +965,15 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
     }
   };
 
- // --- COMPUTED METRICS ---
+  // --- COMPUTED METRICS (WITH TRUE EMPTY STATES) ---
   const hasQuizHistory = examResults.length > 0;
   const avgScore = hasQuizHistory
     ? Math.round(
         examResults.reduce((acc, curr) => acc + (curr.score / curr.total_questions) * 100, 0) /
           examResults.length
       )
-    : 0;
-  const isLowAccuracy = !hasQuizHistory || avgScore < 50;
+    : null;
+  const isLowAccuracy = hasQuizHistory && avgScore < 50;
 
   const masteredTitlesSet = new Set(vault.map((v) => v.title.toLowerCase()));
   const politySubject = SUBJECTS_DATA[0];
@@ -927,7 +1016,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
     return baseChapters;
   };
 
-  // Share app handler
+  // Refer a friend handler
   const handleShareApp = async () => {
     const shareData = {
       title: 'PolicyPath — Your free AI mentor for UPSC',
@@ -938,15 +1027,15 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       if (navigator.share) {
         await navigator.share(shareData);
       } else {
-        await navigator.clipboard.writeText(shareData.url);
-        alert('Link copied! Share it with your UPSC study group.');
+        await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+        alert('Invite link copied! Share it on WhatsApp with your UPSC study group 📤');
       }
     } catch (err) {
       console.log('Share cancelled');
     }
   };
 
-  // --- 1.3 BOTTOM NAVIGATION CONFIG (Home | Learn | Practice | Progress) ---
+  // --- BOTTOM NAVIGATION CONFIG (Home | Learn | Practice | Progress) ---
   const navTabs = [
     {
       id: 'home',
@@ -1015,8 +1104,8 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
   return (
     <div className="h-[100dvh] w-full bg-[#FFFFFF] dark:bg-[#0F1724] text-[#4B5563] dark:text-[#D1D5DB] font-sans overflow-hidden flex flex-col relative transition-colors duration-200">
       {/* TOP HEADER */}
-      <header className="px-5 py-3.5 flex justify-between items-center z-40 bg-[#FFFFFF] dark:bg-[#1A2332] border-b border-[#E5E7EB] dark:border-[#283548]">
-        <div className="flex items-center gap-3.5">
+      <header className="px-4 sm:px-5 py-3 flex justify-between items-center z-40 bg-[#FFFFFF] dark:bg-[#1A2332] border-b border-[#E5E7EB] dark:border-[#283548]">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setIsSidebarOpen(true)}
             aria-label="Open menu"
@@ -1039,11 +1128,21 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
+          {/* Hindi / English Language Toggle */}
+          <button
+            onClick={() => setLanguage((l) => (l === 'English' ? 'हिंदी' : 'English'))}
+            aria-label="Toggle language"
+            className="px-2.5 py-1.5 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] bg-[#F9FAFB] dark:bg-[#0F1724] text-[12px] font-semibold text-[#FF6B00] hover:border-[#FF6B00] transition"
+          >
+            🌐 {language === 'English' ? 'EN' : 'हिंदी'}
+          </button>
+
+          {/* Dark Mode Toggle */}
           <button
             onClick={toggleDarkMode}
             aria-label="Toggle dark mode"
-            className="px-2.5 py-1.5 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] bg-[#F9FAFB] dark:bg-[#0F1724] text-[12px] font-medium text-[#111827] dark:text-[#F9FAFB] hover:border-[#FF6B00] transition flex items-center gap-1.5"
+            className="px-2.5 py-1.5 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] bg-[#F9FAFB] dark:bg-[#0F1724] text-[12px] font-medium text-[#111827] dark:text-[#F9FAFB] hover:border-[#FF6B00] transition flex items-center gap-1"
           >
             <span>{isDarkMode ? '☀️' : '🌙'}</span>
             <span className="hidden sm:inline">{isDarkMode ? 'Light' : 'Dark'}</span>
@@ -1056,7 +1155,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       </header>
 
       {/* ===================================================================== */}
-      {/* 2.6 SIDEBAR / PROFILE REDESIGN                                        */}
+      {/* SIDEBAR / PROFILE DRAWER                                              */}
       {/* ===================================================================== */}
       <AnimatePresence>
         {isSidebarOpen && (
@@ -1075,7 +1174,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
               transition={{ type: 'spring', damping: 28, stiffness: 260 }}
               className="fixed top-0 left-0 bottom-0 w-4/5 max-w-xs bg-[#FFFFFF] dark:bg-[#1A2332] border-r border-[#E5E7EB] dark:border-[#283548] z-50 flex flex-col p-5 shadow-xl overflow-y-auto"
             >
-              {/* Close Button */}
               <div className="flex justify-end">
                 <button
                   onClick={() => setIsSidebarOpen(false)}
@@ -1085,7 +1183,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                 </button>
               </div>
 
-              {/* Avatar, Name, Streak, Level & XP Progress */}
               <div className="mt-2 pb-5 border-b border-[#E5E7EB] dark:border-[#283548]">
                 <div className="flex items-center gap-3.5">
                   <div className="w-12 h-12 rounded-[12px] bg-[#1A2332] text-white flex items-center justify-center text-xl font-bold shrink-0">
@@ -1107,7 +1204,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                   </div>
                 </div>
 
-                {/* XP & Level Bar */}
                 <div className="mt-4 bg-[#F9FAFB] dark:bg-[#0F1724] p-3 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548]">
                   <div className="text-[12px] font-medium text-[#111827] dark:text-white mb-1.5">
                     {isEmptyProgress
@@ -1126,7 +1222,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                 </div>
               </div>
 
-              {/* Navigation Items */}
               <div className="py-4 space-y-1 flex-1">
                 <button
                   onClick={() => handleTabChange('progress')}
@@ -1164,12 +1259,28 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                   <span>My Student ID</span>
                 </button>
                 <button
+                  onClick={handleEnableReminders}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] text-[15px] text-[#374151] dark:text-white transition"
+                >
+                  <span className="flex items-center gap-3">
+                    <span>🔔</span>
+                    <span>Daily Reminder</span>
+                  </span>
+                  <span
+                    className={`text-[12px] font-semibold ${
+                      reminderEnabled ? 'text-[#10B981]' : 'text-[#9CA3AF]'
+                    }`}
+                  >
+                    {reminderEnabled ? '8:00 PM ON' : 'Off'}
+                  </span>
+                </button>
+                <button
                   onClick={toggleDarkMode}
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] text-[15px] text-[#374151] dark:text-white transition"
                 >
                   <span className="flex items-center gap-3">
                     <span>⚙️</span>
-                    <span>Settings</span>
+                    <span>Theme</span>
                   </span>
                   <span className="type-caption">{isDarkMode ? 'Dark' : 'Light'}</span>
                 </button>
@@ -1195,7 +1306,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                 </button>
               </div>
 
-              {/* Footer: Free Forever + Share + Sign Out */}
               <div className="pt-4 border-t border-[#E5E7EB] dark:border-[#283548] space-y-3">
                 <div className="bg-[#10B981]/10 border border-[#10B981]/20 rounded-[12px] p-3">
                   <div className="text-[12px] font-semibold text-[#10B981]">
@@ -1208,7 +1318,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                   onClick={handleShareApp}
                   className="w-full bg-[#F9FAFB] dark:bg-[#0F1724] hover:border-[#FF6B00] border border-[#E5E7EB] dark:border-[#283548] text-[#111827] dark:text-white font-medium py-2.5 rounded-[12px] text-[14px] transition"
                 >
-                  Share with friends 📤
+                  Refer a friend 📤
                 </button>
 
                 {session ? (
@@ -1235,16 +1345,15 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         )}
       </AnimatePresence>
 
-        {/* ===================================================================== */}
+      {/* ===================================================================== */}
       {/* MAIN CONTENT AREA                                                     */}
       {/* ===================================================================== */}
-      <main className="flex-1 overflow-y-auto pb-28 scroll-smooth bg-[#FFFFFF] dark:bg-[#0F1724]">
+      <main className="flex-1 overflow-y-auto pb-32 scroll-smooth bg-[#FFFFFF] dark:bg-[#0F1724]">
         {/* ------------------------------------------------------------------- */}
-        {/* 2.1 HOME SCREEN                                                     */}
+        {/* HOME SCREEN                                                         */}
         {/* ------------------------------------------------------------------- */}
         {activeTab === 'home' && (
           <div className="max-w-xl mx-auto p-5 space-y-5 animate-fade-in">
-            {/* Top Greeting & Streak */}
             <div>
               <h1 className="type-h1">Namaste, {firstName}! 🙏</h1>
               <p className="type-body mt-0.5">
@@ -1328,25 +1437,35 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
               </button>
             </div>
 
-            {/* Quick Stats Strip */}
+            {/* Quick Stats Strip (True Empty States Instead of Zeros) */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="surface-card p-3.5 text-center">
-                <div className="text-[20px] font-bold text-[#111827] dark:text-white">
+              <button
+                onClick={() => handleTabChange('learn')}
+                className="surface-card p-3.5 text-center hover:border-[#FF6B00] transition"
+              >
+                <div className="text-[18px] font-bold text-[#111827] dark:text-white">
                   🏆 {polityMasteredCount}
                 </div>
-                <div className="type-caption mt-0.5">Topics You Know</div>
-              </div>
-              <div className="surface-card p-3.5 text-center">
-                <div className="text-[20px] font-bold text-[#10B981]">
-                  📈 {hasQuizHistory ? `${avgScore}%` : '42%'}
+                <div className="type-caption mt-0.5">Topics Known</div>
+              </button>
+              <button
+                onClick={() => handleTabChange('practice')}
+                className="surface-card p-3.5 text-center hover:border-[#FF6B00] transition"
+              >
+                <div className="text-[18px] font-bold text-[#10B981]">
+                  {hasQuizHistory ? `📈 ${avgScore}%` : '🎯 Start'}
                 </div>
-                <div className="type-caption mt-0.5">Accuracy</div>
-              </div>
-              <div className="surface-card p-3.5 text-center">
-                <div className="text-[20px] font-bold text-[#FF6B00]">
-                  🔥 {streakCount || 1}
+                <div className="type-caption mt-0.5">
+                  {hasQuizHistory ? 'Accuracy' : '1st Quiz →'}
                 </div>
-                <div className="type-caption mt-0.5">Streak</div>
+              </button>
+              <div className="surface-card p-3.5 text-center">
+                <div className="text-[18px] font-bold text-[#FF6B00]">
+                  {streakCount > 0 ? `🔥 ${streakCount}d` : '💪 Day 1'}
+                </div>
+                <div className="type-caption mt-0.5">
+                  {streakCount > 0 ? 'Streak' : 'Shuru karo'}
+                </div>
               </div>
             </div>
 
@@ -1354,7 +1473,9 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
             <div className="surface-card p-4 bg-[#F9FAFB] dark:bg-[#1A2332] flex items-start gap-3">
               <span className="text-xl shrink-0">💡</span>
               <p className="type-body text-[#111827] dark:text-[#F9FAFB] font-medium">
-                "Pichle hafte se 15% improvement hua hai. Aise hi chalte raho!"
+                {hasQuizHistory
+                  ? '"Pichle hafte se 15% improvement hua hai. Aise hi chalte raho!"'
+                  : '"Har topper ne zero se shuru kiya tha. Aaj ek topic padh kar apna streak start karo!"'}
               </p>
             </div>
 
@@ -1385,15 +1506,47 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                 </div>
               </button>
             </div>
+
+            {/* Daily Reminder Opt-in + Refer a Friend */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <button
+                onClick={handleEnableReminders}
+                className="surface-card p-4 text-left hover:border-[#FF6B00] transition flex items-center justify-between gap-2"
+              >
+                <div>
+                  <div className="text-[14px] font-semibold text-[#111827] dark:text-white">
+                    {reminderEnabled ? '🔔 Reminder Active (8 PM)' : '🔔 Daily Study Reminder'}
+                  </div>
+                  <div className="type-caption mt-0.5">
+                    {reminderEnabled ? 'Streak protection ON' : 'Never miss a revision day'}
+                  </div>
+                </div>
+                <span className="text-[12px] font-bold text-[#FF6B00]">
+                  {reminderEnabled ? '✓' : 'Enable →'}
+                </span>
+              </button>
+
+              <button
+                onClick={handleShareApp}
+                className="surface-card p-4 text-left hover:border-[#10B981] transition flex items-center justify-between gap-2"
+              >
+                <div>
+                  <div className="text-[14px] font-semibold text-[#111827] dark:text-white">
+                    📤 Refer a friend
+                  </div>
+                  <div className="type-caption mt-0.5">Study UPSC together — free</div>
+                </div>
+                <span className="text-[12px] font-bold text-[#10B981]">Invite →</span>
+              </button>
+            </div>
           </div>
         )}
 
-         {/* ------------------------------------------------------------------- */}
-        {/* 2.2 LEARN SCREEN ("Topics You Know ✅")                            */}
+        {/* ------------------------------------------------------------------- */}
+        {/* LEARN SCREEN ("Topics You Know ✅")                                  */}
         {/* ------------------------------------------------------------------- */}
         {activeTab === 'learn' && (
           <div className="max-w-xl mx-auto p-5 space-y-5 animate-fade-in">
-            {/* LEVEL 1: TOPICS YOU KNOW & SUBJECTS */}
             {!selectedSubjectId && (
               <>
                 <div>
@@ -1427,7 +1580,9 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                           </div>
                           <span className="text-xs font-semibold text-[#FF6B00]">
                             {subj.totalTopics
-                              ? `${masteredNum}/${subj.totalTopics} topics`
+                              ? masteredNum > 0
+                                ? `${masteredNum}/${subj.totalTopics} topics`
+                                : 'Start now'
                               : 'Updated daily'}{' '}
                             →
                           </span>
@@ -1437,7 +1592,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                           <div className="w-full h-2 bg-[#E5E7EB] dark:bg-[#283548] rounded-full overflow-hidden">
                             <div
                               className="h-full bg-[#10B981] rounded-full transition-all"
-                              style={{ width: `${Math.max(pct, masteredNum > 0 ? 12 : 0)}%` }}
+                              style={{ width: `${Math.max(pct, masteredNum > 0 ? 12 : 4)}%` }}
                             />
                           </div>
                         )}
@@ -1448,7 +1603,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
               </>
             )}
 
-            {/* LEVEL 2: CHAPTERS LIST INSIDE SELECTED SUBJECT */}
             {selectedSubjectId && !selectedLesson && (() => {
               const activeSubject = SUBJECTS_DATA.find((s) => s.id === selectedSubjectId);
               const chapters = getSubjectChapters(activeSubject);
@@ -1484,7 +1638,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                           ? 'Mastered'
                           : ch.status === 'in_progress'
                           ? `In Progress — ${ch.progress}%`
-                          : 'Not started yet';
+                          : 'Ready to learn';
 
                       return (
                         <button
@@ -1520,7 +1674,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
               );
             })()}
 
-            {/* LEVEL 3: AI-POWERED LESSON VIEW */}
             {selectedLesson && (
               <div className="space-y-4 animate-fade-in">
                 <button
@@ -1544,7 +1697,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                     <h1 className="type-h1">{selectedLesson.title}</h1>
                   </div>
 
-                  {/* Concept Explanation */}
                   <div className="space-y-1.5">
                     <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
                       📌 Concept Explanation
@@ -1552,7 +1704,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                     <p className="type-body">{selectedLesson.concept}</p>
                   </div>
 
-                  {/* Key Points (Bulleted) */}
                   <div className="space-y-2">
                     <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
                       🔑 Key Points
@@ -1567,14 +1718,13 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                     </ul>
                   </div>
 
-                  {/* AI Mentor Live Exam Tip */}
                   {loadingLessonAI && (
                     <div className="bg-[#F9FAFB] dark:bg-[#0F1724] p-3.5 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] type-caption">
                       🤖 PolicyPath soch raha hai... preparing UPSC exam notes
                     </div>
                   )}
                   {aiLessonExtra && (
-                    <div className="bg-[#F9FAFB] dark:bg-[#0F1724] p-4 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] space-y-1.5">
+                    <div className="space-y-1.5">
                       <div className="text-[12px] font-semibold text-[#FF6B00]">
                         🤖 Mentor Exam Notes
                       </div>
@@ -1582,7 +1732,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                     </div>
                   )}
 
-                  {/* PYQ Connections */}
                   <div className="bg-[#1A2332] text-white p-4 rounded-[12px] space-y-1">
                     <div className="text-[12px] font-semibold text-[#FF6B00]">
                       📝 PYQ Connections
@@ -1590,7 +1739,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                     <p className="text-[14px] text-white/90">{selectedLesson.pyq}</p>
                   </div>
 
-                  {/* Lesson Action Buttons */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                     <button
                       onClick={() => {
@@ -1619,7 +1767,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         )}
 
         {/* ------------------------------------------------------------------- */}
-        {/* 2.3 PRACTICE SCREEN (Phase 3 Copy Overhaul)                         */}
+        {/* PRACTICE SCREEN                                                     */}
         {/* ------------------------------------------------------------------- */}
         {activeTab === 'practice' && (
           <div className="max-w-xl mx-auto p-5 animate-fade-in">
@@ -1632,7 +1780,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                   </p>
                 </div>
 
-                {/* Card 1: Smart Quiz */}
                 <div className="surface-card-elevated p-5 space-y-3">
                   <div>
                     <h2 className="type-h2">🎯 Polity Quick Quiz — 10Q</h2>
@@ -1648,7 +1795,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                   </button>
                 </div>
 
-                {/* Card 2: Topic-wise Practice */}
                 <div className="surface-card p-5 space-y-3">
                   <div>
                     <h2 className="type-h2">📚 Topic-wise Practice</h2>
@@ -1662,7 +1808,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                   </button>
                 </div>
 
-                {/* Card 3: Previous Year Questions */}
                 <div className="surface-card p-5 space-y-3">
                   <div>
                     <h2 className="type-h2">📝 Previous Year Questions</h2>
@@ -1678,7 +1823,6 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
               </div>
             )}
 
-            {/* Topic-wise Picker */}
             {testState === 'topic_picker' && (
               <div className="space-y-4 animate-fade-in">
                 <button
@@ -1817,197 +1961,202 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         )}
 
         {/* ------------------------------------------------------------------- */}
-        {/* 2.4 PROGRESS SCREEN (Growth Trajectory + Recovery Actions)          */}
+        {/* PROGRESS SCREEN (TRUE EMPTY STATE + GROWTH TRAJECTORY)              */}
         {/* ------------------------------------------------------------------- */}
         {activeTab === 'progress' && (
           <div className="max-w-xl mx-auto p-5 space-y-5 animate-fade-in">
             <h1 className="type-h1">📊 Your Progress</h1>
 
-            {/* Encouraging Banner when accuracy is low or starting out */}
-            {isLowAccuracy && (
-              <div className="surface-card-elevated p-4 border-l-4 border-l-[#FF6B00] space-y-2.5">
-                <p className="type-body text-[#111827] dark:text-white font-medium">
-                  "Har topper ne zero se shuru kiya tha. Keep going."
+            {!hasQuizHistory ? (
+              <div className="surface-card-elevated p-7 text-center space-y-4">
+                <div className="text-4xl">🚀</div>
+                <h2 className="type-h2">Aaj se shuru karte hain! 💪</h2>
+                <p className="type-body">
+                  "Har topper ne zero se shuru kiya tha. Apna pehla 10-question Polity quiz solve karo aur apna growth chart unlock karo!"
                 </p>
+                <div className="inline-block bg-[#10B981]/10 text-[#10B981] text-[12px] font-semibold px-3 py-1 rounded-[12px]">
+                  ✅ {polityMasteredCount} topics already in Topics You Know
+                </div>
                 <button
                   onClick={handleSmartQuiz}
-                  className="text-[13px] font-semibold text-[#FF6B00] hover:underline"
+                  className="w-full bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold py-3.5 rounded-[12px] text-[15px] transition shadow-sm"
                 >
-                  Score low? Let's practice →
+                  Start Practice →
                 </button>
               </div>
-            )}
-
-            {/* This Week Trajectory Card */}
-            <div className="surface-card-elevated p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
-                  This Week
-                </h3>
-                <span className="text-[12px] font-bold text-[#10B981] bg-[#10B981]/10 px-2.5 py-0.5 rounded-[12px]">
-                  72% (+15% ↑)
-                </span>
-              </div>
-              <div className="w-full h-2.5 bg-[#E5E7EB] dark:bg-[#283548] rounded-full overflow-hidden">
-                <div className="h-full bg-[#10B981] rounded-full" style={{ width: '72%' }} />
-              </div>
-              <p className="type-caption text-[#10B981] font-medium">
-                "Pichle hafte se better!"
-              </p>
-            </div>
-
-            {/* 2-Column Accuracy & Avg/day */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="surface-card p-5 text-center space-y-1">
-                <div className="type-stat">📈 {hasQuizHistory ? `${avgScore}%` : '42%'}</div>
-                <div className="type-caption">Accuracy</div>
+            ) : (
+              <>
                 {isLowAccuracy && (
+                  <div className="surface-card-elevated p-4 border-l-4 border-l-[#FF6B00] space-y-2.5">
+                    <p className="type-body text-[#111827] dark:text-white font-medium">
+                      "Har topper ne zero se shuru kiya tha. Keep going."
+                    </p>
+                    <button
+                      onClick={handleSmartQuiz}
+                      className="text-[13px] font-semibold text-[#FF6B00] hover:underline"
+                    >
+                      Score low? Let's practice →
+                    </button>
+                  </div>
+                )}
+
+                <div className="surface-card-elevated p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
+                      Your Growth Trajectory
+                    </h3>
+                    <span className="text-[12px] font-bold text-[#10B981] bg-[#10B981]/10 px-2.5 py-0.5 rounded-[12px]">
+                      {examResults.length} {examResults.length === 1 ? 'Quiz' : 'Quizzes'} Done ↑
+                    </span>
+                  </div>
+                  <div className="w-full h-2.5 bg-[#E5E7EB] dark:bg-[#283548] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#10B981] rounded-full transition-all"
+                      style={{ width: `${Math.max(avgScore, 15)}%` }}
+                    />
+                  </div>
+                  <p className="type-caption text-[#10B981] font-medium">
+                    "Har quiz ke saath tumhari clarity aur strong ho rahi hai!"
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="surface-card p-5 text-center space-y-1">
+                    <div className="type-stat">📈 {avgScore}%</div>
+                    <div className="type-caption">Accuracy</div>
+                    {isLowAccuracy && (
+                      <button
+                        onClick={handleSmartQuiz}
+                        className="text-[11px] font-semibold text-[#FF6B00] hover:underline pt-1 block mx-auto"
+                      >
+                        Score low? Let's practice →
+                      </button>
+                    )}
+                  </div>
+                  <div className="surface-card p-5 text-center">
+                    <div className="type-stat text-[#1A2332] dark:text-white">
+                      ✅ {polityMasteredCount}
+                    </div>
+                    <div className="type-caption mt-1">Topics Known</div>
+                  </div>
+                </div>
+
+                <div className="surface-card p-5 space-y-2.5">
+                  <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
+                    💪 Strong Topics
+                  </h3>
+                  <div className="space-y-2 type-body">
+                    <div className="flex justify-between items-center">
+                      <span>• Source of Authority</span>
+                      <span className="text-[12px] font-semibold text-[#10B981]">Mastered</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>• Citizenship</span>
+                      <span className="text-[12px] font-semibold text-[#10B981]">Mastered</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="surface-card p-5 space-y-3">
+                  <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
+                    🎯 Focus Areas for Growth
+                  </h3>
+                  <div className="space-y-2 type-body">
+                    <div className="flex justify-between items-center">
+                      <span>• Fundamental Rights</span>
+                      <span className="text-[12px] font-semibold text-[#FF6B00] bg-[#FF6B00]/10 px-2 py-0.5 rounded-[12px]">
+                        High-yield • Revise
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>• Directive Principles</span>
+                      <span className="text-[12px] font-semibold text-[#FF6B00] bg-[#FF6B00]/10 px-2 py-0.5 rounded-[12px]">
+                        In progress
+                      </span>
+                    </div>
+                  </div>
                   <button
-                    onClick={handleSmartQuiz}
-                    className="text-[11px] font-semibold text-[#FF6B00] hover:underline pt-1 block mx-auto"
+                    onClick={() =>
+                      startQuizWithTopics(
+                        'Fundamental Rights, Directive Principles of State Policy',
+                        'Polity Quick Quiz — 10Q'
+                      )
+                    }
+                    className="w-full bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold py-3 rounded-[12px] text-[14px] transition"
                   >
                     Score low? Let's practice →
                   </button>
-                )}
-              </div>
-              <div className="surface-card p-5 text-center">
-                <div className="type-stat text-[#1A2332] dark:text-white">⏱️ 2.1hr</div>
-                <div className="type-caption mt-1">Avg/day</div>
-              </div>
-            </div>
-
-            {/* Strong Topics */}
-            <div className="surface-card p-5 space-y-2.5">
-              <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
-                💪 Strong Topics
-              </h3>
-              <div className="space-y-2 type-body">
-                <div className="flex justify-between items-center">
-                  <span>• Source of Authority</span>
-                  <span className="text-[12px] font-semibold text-[#10B981]">85%</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span>• Citizenship</span>
-                  <span className="text-[12px] font-semibold text-[#10B981]">78%</span>
-                </div>
-              </div>
-            </div>
 
-            {/* Needs Work (No punitive red badges; warm saffron growth cue + action) */}
-            <div className="surface-card p-5 space-y-3">
-              <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
-                🎯 Focus Areas for Growth
-              </h3>
-              <div className="space-y-2 type-body">
-                <div className="flex justify-between items-center">
-                  <span>• Fundamental Rights</span>
-                  <span className="text-[12px] font-semibold text-[#FF6B00] bg-[#FF6B00]/10 px-2 py-0.5 rounded-[12px]">
-                    32% • Building up
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>• Preamble</span>
-                  <span className="text-[12px] font-semibold text-[#FF6B00] bg-[#FF6B00]/10 px-2 py-0.5 rounded-[12px]">
-                    25% • Just started
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() =>
-                  startQuizWithTopics(
-                    'Fundamental Rights, Preamble of India',
-                    'Polity Quick Quiz — 10Q'
-                  )
-                }
-                className="w-full bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold py-3 rounded-[12px] text-[14px] transition"
-              >
-                Score low? Let's practice →
-              </button>
-            </div>
+                <div className="space-y-3">
+                  <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
+                    Recent Quizzes
+                  </h3>
+                  {examResults.slice(0, 5).map((res, i) => {
+                    const pct = Math.round((res.score / res.total_questions) * 100);
+                    const prevRes = examResults[i + 1];
+                    const improved = prevRes ? res.score >= prevRes.score : true;
 
-            {/* Recent Quizzes (Trajectory-focused) */}
-            <div className="space-y-3">
-              <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
-                Recent Quizzes
-              </h3>
-
-              {examResults.length === 0 ? (
-                <div className="surface-card p-5 space-y-2">
-                  <p className="type-body">
-                    Har topper ne zero se shuru kiya tha. Take your first 10-question quiz!
-                  </p>
-                  <button
-                    onClick={handleSmartQuiz}
-                    className="text-[13px] font-semibold text-[#FF6B00] hover:underline"
-                  >
-                    Start Practice →
-                  </button>
-                </div>
-              ) : (
-                examResults.slice(0, 5).map((res, i) => {
-                  const pct = Math.round((res.score / res.total_questions) * 100);
-                  const prevRes = examResults[i + 1];
-                  const improved = prevRes ? res.score >= prevRes.score : true;
-
-                  return (
-                    <div key={i} className="surface-card p-4 space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="text-[15px] font-semibold text-[#111827] dark:text-white">
-                          {res.topics_covered || 'Polity Quick Quiz — 10Q'} •{' '}
-                          <span className="type-caption font-normal">
-                            {new Date(res.created_at).toLocaleDateString('en-IN', {
-                              day: 'numeric',
-                              month: 'short',
-                            })}
-                          </span>
+                    return (
+                      <div key={i} className="surface-card p-4 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <div className="text-[15px] font-semibold text-[#111827] dark:text-white">
+                            {res.topics_covered || 'Polity Quick Quiz — 10Q'} •{' '}
+                            <span className="type-caption font-normal">
+                              {new Date(res.created_at).toLocaleDateString('en-IN', {
+                                day: 'numeric',
+                                month: 'short',
+                              })}
+                            </span>
+                          </div>
+                          {improved && (
+                            <span className="text-[11px] font-semibold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded-[12px]">
+                              Improvement detected! 📈
+                            </span>
+                          )}
                         </div>
-                        {improved && (
-                          <span className="text-[11px] font-semibold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded-[12px]">
-                            Improvement detected! 📈
+
+                        <div className="flex items-center gap-3">
+                          <span className="text-[13px] font-bold text-[#111827] dark:text-white">
+                            {res.score}/{res.total_questions}
                           </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <span className="text-[13px] font-bold text-[#111827] dark:text-white">
-                          {res.score}/{res.total_questions}
-                        </span>
-                        <div className="flex-1 h-2 bg-[#E5E7EB] dark:bg-[#283548] rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${
-                              pct >= 50 ? 'bg-[#10B981]' : 'bg-[#FF6B00]'
-                            }`}
-                            style={{ width: `${Math.max(pct, 10)}%` }}
-                          />
+                          <div className="flex-1 h-2 bg-[#E5E7EB] dark:bg-[#283548] rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${
+                                pct >= 50 ? 'bg-[#10B981]' : 'bg-[#FF6B00]'
+                              }`}
+                              style={{ width: `${Math.max(pct, 10)}%` }}
+                            />
+                          </div>
+                          <span className="type-caption font-semibold">{pct}%</span>
                         </div>
-                        <span className="type-caption font-semibold">{pct}%</span>
-                      </div>
 
-                      <div className="flex items-center justify-between pt-0.5">
-                        <button
-                          onClick={() => setViewingSwot(res)}
-                          className="text-[13px] font-semibold text-[#FF6B00] hover:underline"
-                        >
-                          View Analysis →
-                        </button>
-                        {pct < 50 && (
+                        <div className="flex items-center justify-between pt-0.5">
                           <button
-                            onClick={handleSmartQuiz}
-                            className="text-[12px] font-medium text-[#6B7280] hover:text-[#FF6B00]"
+                            onClick={() => setViewingSwot(res)}
+                            className="text-[13px] font-semibold text-[#FF6B00] hover:underline"
                           >
-                            Score low? Let's practice →
+                            View Analysis →
                           </button>
-                        )}
+                          {pct < 50 && (
+                            <button
+                              onClick={handleSmartQuiz}
+                              className="text-[12px] font-medium text-[#6B7280] hover:text-[#FF6B00]"
+                            >
+                              Score low? Let's practice →
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
 
             {viewingSwot && (
               <div className="fixed inset-0 z-[70] bg-[#111827]/60 flex items-center justify-center p-4 animate-fade-in">
-                <div className="surface-card-elevated w-full max-w-sm p-7 relative">
+                <div className="surface-card-elevated w-full max-w-sm p-7 relative max-h-[80vh] overflow-y-auto">
                   <button
                     onClick={() => setViewingSwot(null)}
                     className="absolute top-4 right-4 text-[#9CA3AF] hover:text-[#111827] dark:hover:text-white font-bold"
@@ -2018,8 +2167,13 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                   <div className="type-caption text-[#FF6B00] font-medium mb-4">
                     Score: {viewingSwot.score}/{viewingSwot.total_questions}
                   </div>
-                  <div className="bg-[#F9FAFB] dark:bg-[#0F1724] p-4 rounded-[12px] type-body border border-[#E5E7EB] dark:border-[#283548] whitespace-pre-wrap">
-                    {viewingSwot.swot_analysis || "Keep practicing — detailed analysis unlocks on your next quiz!"}
+                  <div className="bg-[#F9FAFB] dark:bg-[#0F1724] p-4 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548]">
+                    <FormattedAIMessage
+                      text={
+                        viewingSwot.swot_analysis ||
+                        "Keep practicing — detailed analysis unlocks on your next quiz!"
+                      }
+                    />
                   </div>
                 </div>
               </div>
@@ -2027,7 +2181,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
           </div>
         )}
 
-        {/* TAB 5: LEADERBOARD (HALL OF FAME) */}
+        {/* TAB 5: LEADERBOARD */}
         {activeTab === 'leaderboard' && (
           <div className="p-5 max-w-xl mx-auto space-y-5 animate-fade-in">
             <div>
@@ -2035,38 +2189,44 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
               <p className="type-body mt-0.5">Top UPSC learners growing together</p>
             </div>
             <div className="surface-card overflow-hidden">
-              {leaderboard.map((user, index) => (
-                <div
-                  key={index}
-                  className={`flex items-center justify-between p-4 border-b border-[#E5E7EB] dark:border-[#283548] last:border-0 ${
-                    index === 0 ? 'bg-[#FF6B00]/5' : ''
-                  }`}
-                >
-                  <div className="flex items-center gap-3.5">
-                    <div
-                      className={`w-8 h-8 rounded-[12px] flex items-center justify-center font-bold text-[12px] ${
-                        index === 0
-                          ? 'bg-[#FF6B00] text-white'
-                          : index === 1
-                          ? 'bg-[#1A2332] text-white'
-                          : 'bg-[#F9FAFB] dark:bg-[#0F1724] text-[#6B7280] border border-[#E5E7EB] dark:border-[#283548]'
-                      }`}
-                    >
-                      {index + 1}
-                    </div>
-                    <div>
-                      <div className="font-semibold text-[15px] text-[#111827] dark:text-white">
-                        {user.full_name || user.username || 'Aspirant'}
-                      </div>
-                      <div className="type-caption flex gap-2.5 mt-0.5">
-                        <span>🔥 {user.streak || 1}d streak</span>
-                        <span>✅ {user.topics_mastered || 0} topics known</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-[15px] font-bold text-[#10B981]">{user.xp || 0} XP</div>
+              {leaderboard.length === 0 ? (
+                <div className="p-6 text-center type-body">
+                  Aaj se shuru karte hain! 💪 Complete a topic or quiz to appear on the leaderboard.
                 </div>
-              ))}
+              ) : (
+                leaderboard.map((user, index) => (
+                  <div
+                    key={index}
+                    className={`flex items-center justify-between p-4 border-b border-[#E5E7EB] dark:border-[#283548] last:border-0 ${
+                      index === 0 ? 'bg-[#FF6B00]/5' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <div
+                        className={`w-8 h-8 rounded-[12px] flex items-center justify-center font-bold text-[12px] ${
+                          index === 0
+                            ? 'bg-[#FF6B00] text-white'
+                            : index === 1
+                            ? 'bg-[#1A2332] text-white'
+                            : 'bg-[#F9FAFB] dark:bg-[#0F1724] text-[#6B7280] border border-[#E5E7EB] dark:border-[#283548]'
+                        }`}
+                      >
+                        {index + 1}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-[15px] text-[#111827] dark:text-white">
+                          {user.full_name || user.username || 'Aspirant'}
+                        </div>
+                        <div className="type-caption flex gap-2.5 mt-0.5">
+                          <span>🔥 {user.streak || 1}d streak</span>
+                          <span>✅ {user.topics_mastered || 0} topics known</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-[15px] font-bold text-[#10B981]">{user.xp || 0} XP</div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
@@ -2172,7 +2332,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         )}
       </main>
 
-       {/* ===================================================================== */}
+      {/* ===================================================================== */}
       {/* FLOATING "Ask Doubt 💬" FAB BUTTON (BOTTOM RIGHT)                     */}
       {/* ===================================================================== */}
       {!isChatOpen && (
@@ -2188,7 +2348,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       )}
 
       {/* ===================================================================== */}
-      {/* 2.5 AI CHAT (POLICYPATH MENTOR DRAWER WITH PHASE 3 COPY)              */}
+      {/* AI CHAT (POLICYPATH MENTOR FULL-SCREEN DRAWER — ZERO NAV OVERLAP)     */}
       {/* ===================================================================== */}
       <AnimatePresence>
         {isChatOpen && (
@@ -2199,8 +2359,8 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
             transition={{ type: 'spring', damping: 28, stiffness: 260 }}
             className="fixed inset-0 z-50 bg-[#FFFFFF] dark:bg-[#0F1724] flex flex-col"
           >
-            {/* Chat Header */}
-            <div className="px-5 py-3.5 bg-[#FFFFFF] dark:bg-[#1A2332] border-b border-[#E5E7EB] dark:border-[#283548] flex items-center justify-between">
+            {/* Chat Header with Language Switch */}
+            <div className="px-4 sm:px-5 py-3.5 bg-[#FFFFFF] dark:bg-[#1A2332] border-b border-[#E5E7EB] dark:border-[#283548] flex items-center justify-between gap-2">
               <div>
                 <h2 className="type-h2 flex items-center gap-2">
                   <span>🤖</span>
@@ -2208,17 +2368,25 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                 </h2>
                 <p className="type-caption">"Your free AI mentor for UPSC"</p>
               </div>
-              <button
-                onClick={() => setIsChatOpen(false)}
-                className="px-3 py-1.5 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] text-[12px] font-semibold text-[#111827] dark:text-white hover:border-[#FF6B00] transition"
-              >
-                Close ✕
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setLanguage((l) => (l === 'English' ? 'हिंदी' : 'English'))}
+                  className="px-2.5 py-1.5 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] text-[12px] font-semibold text-[#FF6B00] hover:border-[#FF6B00] transition"
+                >
+                  🌐 {language}
+                </button>
+                <button
+                  onClick={() => setIsChatOpen(false)}
+                  className="px-3 py-1.5 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] text-[12px] font-semibold text-[#111827] dark:text-white hover:border-[#FF6B00] transition"
+                >
+                  Close ✕
+                </button>
+              </div>
             </div>
 
             {/* Chat Messages Feed */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 max-w-2xl w-full mx-auto">
-              {/* Phase 3 AI Welcome Card */}
+              {/* AI Welcome Card */}
               <div className="surface-card-elevated p-5 space-y-3">
                 <div className="text-[12px] font-bold text-[#FF6B00]">AI Mentor</div>
                 <p className="type-body text-[#111827] dark:text-white font-medium">
@@ -2257,7 +2425,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                       <div className="text-[15px] leading-[1.6] whitespace-pre-wrap">{m.text}</div>
                     </div>
                   ) : (
-                    <div className="max-w-[92%] surface-card-elevated p-5 space-y-3">
+                    <div className="max-w-[94%] surface-card-elevated p-5 space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-[12px] font-bold text-[#FF6B00]">AI Mentor</span>
                         {m.saved && (
@@ -2318,7 +2486,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                   </div>
                 </div>
               )}
-              <div ref={messagesEndRef} className="h-4" />
+              <div ref={messagesEndRef} className="h-16" />
             </div>
 
             {/* Bottom Input Bar with Voice (🎤) & Send (➤) */}
@@ -2388,8 +2556,8 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         </div>
       )}
 
-      {/* ===================================================================== */}
-      {/* 1.3 BOTTOM NAVIGATION (Home | Learn | Practice | Progress)            */}
+        {/* ===================================================================== */}
+      {/* BOTTOM NAVIGATION (Home | Learn | Practice | Progress)                */}
       {/* ===================================================================== */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#FFFFFF] dark:bg-[#1A2332] border-t border-[#E5E7EB] dark:border-[#283548] px-2 py-2">
         <div className="max-w-lg mx-auto grid grid-cols-4 gap-1">
