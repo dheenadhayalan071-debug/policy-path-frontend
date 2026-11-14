@@ -2,21 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
 
-    <!-- PolicyPath AI Favicon -->
-    <link
-      rel="icon"
-      type="image/png"
-      href="/parliament-emblem.png"
-    />
-    <link
-      rel="apple-touch-icon"
-      href="/parliament-emblem.png"
-    />
+    <!-- PWA Manifest & Favicons -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" href="/parliament-emblem.png" />
+    <link rel="apple-touch-icon" href="/parliament-emblem.png" />
 
     <meta
       name="viewport"
@@ -58,69 +48,51 @@
     </script>
 
     <!-- SEO -->
-    <title>PolicyPath AI | AI-Powered Constitution Mentor</title>
-
+    <title>PolicyPath AI | Your Free AI Mentor for UPSC</title>
     <meta
       name="description"
-      content="Learn the Constitution of India with PolicyPath AI, your AI-powered Constitution mentor for personalized explanations and guided learning."
+      content="Lakhs aspirants ke saath aap bhi UPSC ki tayyari karo — bilkul free. Learn Indian Polity, Economy, and GS with PolicyPath AI."
     />
-
     <meta
       name="keywords"
-      content="PolicyPath AI, Constitution of India, Indian Constitution, Constitution mentor, civics, political science, AI education"
+      content="PolicyPath AI, Constitution of India, Indian Polity, UPSC mentor, civics, political science, AI education"
     />
 
     <!-- Open Graph / Social Sharing -->
-    <meta
-      property="og:title"
-      content="PolicyPath AI | AI-Powered Constitution Mentor"
-    />
-
+    <meta property="og:title" content="PolicyPath AI | Your Free AI Mentor for UPSC" />
     <meta
       property="og:description"
-      content="Learn the Constitution of India with PolicyPath AI, your AI-powered Constitution mentor for personalized explanations and guided learning."
+      content="Lakhs aspirants ke saath aap bhi UPSC ki tayyari karo — bilkul free."
     />
-
-    <meta
-      property="og:image"
-      content="/parliament-emblem.png"
-    />
-
-    <meta
-      property="og:type"
-      content="website"
-    />
-
-    <meta
-      property="og:url"
-      content="https://policy-path-theta.vercel.app/"
-    />
+    <meta property="og:image" content="/parliament-emblem.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://policy-path-theta.vercel.app/" />
 
     <!-- Google Analytics -->
-    <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=G-3NCZQYKJ9R"
-    ></script>
-
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3NCZQYKJ9R"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
-
       function gtag() {
         dataLayer.push(arguments);
       }
-
       gtag("js", new Date());
-
       gtag("config", "G-3NCZQYKJ9R");
     </script>
   </head>
 
   <body class="bg-[#FFFFFF] text-[#4B5563] antialiased selection:bg-[#FF6B00]/15 selection:text-[#FF6B00]">
     <div id="root"></div>
+    <script type="module" src="/src/index.jsx"></script>
 
-    <script
-      type="module"
-      src="/src/index.jsx"
-    ></script>
+    <!-- Register Offline Service Worker -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/sw.js").catch((err) => {
+            console.warn("SW registration skipped:", err);
+          });
+        });
+      }
+    </script>
   </body>
 </html>
