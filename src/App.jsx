@@ -7,6 +7,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const BACKEND_URL = "https://policy-path-ai-backend-1.onrender.com";
 
+const AI_WELCOME_MSG =
+  "Namaste! 🙏 Main tumhara AI mentor hoon. Constitution, Polity, Economy — kuch bhi pucho. Shuru karte hain?";
+
 // --- CURRICULUM DATA FOR 2.2 LEARN & 2.3 PRACTICE ---
 const SUBJECTS_DATA = [
   {
@@ -181,7 +184,7 @@ const SUBJECTS_DATA = [
   },
 ];
 
-// --- HELPER: CLEAN MARKDOWN & STRUCTURED SECTIONS FOR 2.5 AI CHAT ---
+// --- HELPER: CLEAN MARKDOWN & STRUCTURED SECTIONS FOR AI CHAT ---
 function FormattedAIMessage({ text }) {
   const lines = text.split('\n');
 
@@ -205,7 +208,6 @@ function FormattedAIMessage({ text }) {
         const line = rawLine.trim();
         if (!line) return <div key={index} className="h-1" />;
 
-        // Headings (### or numbered bold section headers)
         if (line.startsWith('###') || line.startsWith('##')) {
           const cleanHeading = line.replace(/^#+\s*/, '').replace(/\*\*/g, '');
           return (
@@ -218,7 +220,6 @@ function FormattedAIMessage({ text }) {
           );
         }
 
-        // Bullet points (- , * , • )
         if (/^[-*•]\s+/.test(line)) {
           const content = line.replace(/^[-*•]\s+/, '');
           return (
@@ -229,7 +230,6 @@ function FormattedAIMessage({ text }) {
           );
         }
 
-        // Numbered points (1. , 2. )
         const numMatch = line.match(/^(\d+\.)\s+(.*)/);
         if (numMatch) {
           return (
@@ -312,7 +312,7 @@ export default function App() {
     return <div className="h-screen w-screen bg-[#FFFFFF] dark:bg-[#0F1724]" />;
   }
 
-  // EXPLICIT LANDING PAGE
+  // EXPLICIT LANDING PAGE (Phase 3 Tagline + First Open Copy)
   if (!session && !isGuestMode) {
     return (
       <div className="h-[100dvh] w-screen flex flex-col items-center justify-center bg-[#F9FAFB] dark:bg-[#0F1724] overflow-y-auto px-4 py-8 relative">
@@ -326,12 +326,14 @@ export default function App() {
         </button>
 
         <div className="surface-card-elevated w-full max-w-md p-8 sm:p-10 animate-fade-in relative z-10">
-          <div className="text-center mb-8">
+          <div className="text-center mb-7">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[12px] bg-[#FF6B00]/10 text-[#FF6B00] text-[12px] font-medium mb-3">
-              UPSC polity & governance
+              Your free AI mentor for UPSC
             </div>
-            <h1 className="type-h1 mb-1.5">PolicyPath AI</h1>
-            <p className="type-body">Main hoon aapka AI teacher</p>
+            <h1 className="type-h1 mb-2">PolicyPath</h1>
+            <p className="type-body text-[#111827] dark:text-[#F9FAFB] font-medium">
+              Lakhs aspirants ke saath aap bhi UPSC ki tayyari karo — bilkul free
+            </p>
           </div>
 
           <Auth
@@ -350,7 +352,7 @@ export default function App() {
               Continue as guest
             </button>
             <p className="type-caption text-center mt-1">
-              Guests can chat, but need an account to save progress.
+              You can chat as a guest, or sign in to save your progress.
             </p>
           </div>
         </div>
@@ -390,7 +392,7 @@ export default function App() {
               <div className="text-center mb-6">
                 <h2 className="type-h2 mb-1">Unlock PolicyPath</h2>
                 <p className="type-body">
-                  Save notes, practice PYQs, and track your UPSC progress.
+                  Your free AI mentor for UPSC — save notes, practice PYQs, and track your growth.
                 </p>
               </div>
               <Auth
@@ -433,22 +435,32 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
 
   // --- 2.3 PRACTICE STATE ---
   const [testState, setTestState] = useState("idle"); // 'idle' | 'topic_picker' | 'loading' | 'active' | 'result'
-  const [quizTitle, setQuizTitle] = useState("Polity Mix");
+  const [quizTitle, setQuizTitle] = useState("Polity Quick Quiz — 10Q");
   const [quiz, setQuiz] = useState([]);
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
 
-  // --- 2.5 AI CHAT STATE ---
+  // --- 2.5 AI CHAT STATE (Migrate old English welcome string to Phase 3 welcome) ---
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem(userStorageKey);
-    return saved ? JSON.parse(saved) : [];
+    if (!saved) return [];
+    try {
+      const parsed = JSON.parse(saved);
+      return parsed.filter(
+        (m) =>
+          m.text !==
+          "Welcome. I am ready to guide you through the Constitution. Ask me anything to start."
+      );
+    } catch {
+      return [];
+    }
   });
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
 
-  // --- SUPABASE DATA STATES ---
+  // --- SUPABASE DATA STATES (Keep internal table name 'vault' intact) ---
   const [vault, setVault] = useState([]);
   const [examResults, setExamResults] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
@@ -466,8 +478,9 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
     userProfile?.full_name?.trim() ||
     (session?.user?.email ? session.user.email.split('@')[0] : 'Aspirant');
   const firstName = displayName.split(' ')[0];
-  const streakCount = userProfile?.streak || 1;
+  const streakCount = userProfile?.streak || 0;
   const totalXP = userProfile?.xp || 0;
+  const isEmptyProgress = totalXP === 0 && streakCount === 0;
   const currentLevel = Math.floor(totalXP / 100) + 1;
   const xpInCurrentLevel = totalXP % 100;
   const xpToNextLevel = 100 - xpInCurrentLevel;
@@ -540,16 +553,16 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
   };
 
   const saveProfile = async () => {
-    if (!formData.full_name) return alert("Name is required!");
+    if (!formData.full_name) return alert("Tumhara naam zaroori hai — please enter your full name!");
     const { error } = await supabase.from('profiles').update(formData).eq('id', session.user.id);
     if (!error) {
-      alert("Profile saved successfully!");
+      alert("Shabaash! Your profile has been saved 🎉");
       setUserProfile((prev) => ({ ...prev, ...formData }));
       setEditingProfile(false);
       setIsNewUser(false);
       fetchData();
     } else {
-      alert("Error saving: " + error.message);
+      alert("Could not save right now: " + error.message);
     }
   };
 
@@ -610,7 +623,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
     }
   }, [messages, userStorageKey, isChatOpen]);
 
-  // --- SAVE TOPIC TO LEARN (SUPABASE VAULT TABLE) ---
+  // --- SAVE TOPIC TO "TOPICS YOU KNOW ✅" (SUPABASE 'vault' TABLE) ---
   const saveTopicToMastered = async (title, notes) => {
     if (!session) {
       triggerAuth();
@@ -618,18 +631,19 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
     }
     const isDuplicate = vault.some((v) => v.title.toLowerCase() === title.toLowerCase());
     if (isDuplicate) {
-      alert(`"${title}" is already marked as Mastered!`);
+      alert(`"${title}" is already in Topics You Know ✅! Keep going!`);
       return;
     }
     const { error } = await supabase.from('vault').insert([
-      { title, status: 'Mastered', notes: notes || 'Mastered via PolicyPath AI', user_id: session.user.id },
+      { title, status: 'Mastered', notes: notes || 'Mastered with PolicyPath AI', user_id: session.user.id },
     ]);
     if (!error) {
-      confetti({ particleCount: 140, spread: 60, colors: ['#FF6B00', '#10B981', '#1A2332'] });
+      confetti({ particleCount: 150, spread: 60, colors: ['#FF6B00', '#10B981', '#1A2332'] });
       updateXP(25, 'mastery');
       fetchData();
+      alert(`Shabaash! "${title}" saved to Topics You Know ✅ (+25 XP 🎉)`);
     } else {
-      alert("Could not save topic: " + error.message);
+      alert("Could not save topic right now: " + error.message);
     }
   };
 
@@ -675,7 +689,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
 
     const langInstruction =
       language === 'हिंदी'
-        ? " (Reply in clear Hinglish / simple Hindi + English UPSC terms)"
+        ? " (Reply in warm, encouraging Hinglish — simple Hindi + English UPSC terms)"
         : "";
 
     try {
@@ -700,7 +714,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         const hiddenPart = parts[1].split("||VAULT_END||")[0];
 
         let topicTitle = "Constitutional concept";
-        let topicSummary = "Mastered via PolicyPath AI";
+        let topicSummary = "Mastered with PolicyPath AI";
 
         if (hiddenPart.includes("Topic:")) {
           topicTitle = hiddenPart.split("Topic:")[1].split("\n")[0].trim().replace(/\*/g, '');
@@ -727,14 +741,13 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
           { role: "bot", text: visibleText, topicHint: topicTitle, saved: Boolean(session) },
         ]);
       } else {
-        // Infer short topic title from user's question for the "Save to Notes 📌" action button
         const inferredTopic = textToSend.length > 45 ? textToSend.slice(0, 45) + '...' : textToSend;
         setMessages((prev) => [...prev, { role: "bot", text: aiText, topicHint: inferredTopic }]);
       }
     } catch (e) {
       setMessages((prev) => [
         ...prev,
-        { role: "bot", text: `⚠️ Network error. Please check your connection and try again.` },
+        { role: "bot", text: `⚠️ Connection thoda slow hai. Ek baar phir try karo!` },
       ]);
     } finally {
       setLoading(false);
@@ -765,7 +778,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
   };
 
   // --- 2.3 QUIZ ENGINE (SMART QUIZ, TOPIC-WISE, PYQs) ---
-  const startQuizWithTopics = async (topicsPrompt, label = "Polity Mix") => {
+  const startQuizWithTopics = async (topicsPrompt, label = "Polity Quick Quiz — 10Q") => {
     if (!session) {
       triggerAuth();
       return;
@@ -801,7 +814,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
     } catch (e) {
       console.error("Quiz Gen Error:", e);
       setTestState("idle");
-      alert(`Error generating quiz: ${e.message}`);
+      alert(`Quiz abhi load nahi ho paya (${e.message}). Ek baar phir try karo!`);
     }
   };
 
@@ -813,25 +826,29 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
     ]
       .slice(0, 6)
       .join(', ');
-    startQuizWithTopics(weakAndSaved, "Smart Quiz • Weak Areas");
+    startQuizWithTopics(weakAndSaved, "Polity Quick Quiz — 10Q");
   };
 
   const handlePyqQuiz = () => {
     startQuizWithTopics(
       "Actual UPSC Civil Services Prelims Previous Year Questions (2015-2024) on Indian Constitution, Preamble, Fundamental Rights, Parliament, and Judiciary",
-      "UPSC Prelims PYQs"
+      "UPSC Prelims PYQs — 10Q"
     );
   };
 
   const finishTest = async () => {
     setTestState("result");
     const passed = score > 5;
-    const earnedXP = passed ? 10 : 0;
+    const earnedXP = passed ? 10 : 5; // Reward effort even on low scores!
+
+    if (score >= 7) {
+      confetti({ particleCount: 150, spread: 60, colors: ['#FF6B00', '#10B981', '#1A2332'] });
+    }
 
     let aiSwot = "Strengths: Good conceptual grasp.\nWeakness: Needs deeper article revision.";
     try {
       const prompt = `Analyze this test performance: Score ${score}/${quiz.length} on ${quizTitle}. 
-      Generate a brief 4-line SWOT analysis (Strengths, Weaknesses, Opportunities, Threats) addressed to the student.`;
+      Generate a brief 4-line encouraging SWOT analysis (Strengths, Weaknesses, Opportunities, Threats) addressed to the student.`;
 
       const res = await fetch(`${BACKEND_URL}/ask`, {
         method: 'POST',
@@ -841,7 +858,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       const data = await res.json();
       aiSwot = data.answer;
     } catch (e) {
-      console.error("SWOT generation failed");
+      console.error("SWOT reflection skipped");
     }
 
     if (session?.user) {
@@ -849,24 +866,25 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         {
           score: score,
           total_questions: quiz.length,
-          topics_covered: quizTitle,
+          topics_covered: quizTitle || "Polity Quick Quiz — 10Q",
           user_id: session.user.id,
           swot_analysis: aiSwot,
         },
       ]);
-      if (earnedXP > 0) updateXP(earnedXP, 'quiz');
+      updateXP(earnedXP, 'quiz');
       fetchData();
     }
   };
 
-  // --- COMPUTED METRICS ---
-  const avgScore =
-    examResults.length > 0
-      ? Math.round(
-          examResults.reduce((acc, curr) => acc + (curr.score / curr.total_questions) * 100, 0) /
-            examResults.length
-        )
-      : 42;
+ // --- COMPUTED METRICS ---
+  const hasQuizHistory = examResults.length > 0;
+  const avgScore = hasQuizHistory
+    ? Math.round(
+        examResults.reduce((acc, curr) => acc + (curr.score / curr.total_questions) * 100, 0) /
+          examResults.length
+      )
+    : 0;
+  const isLowAccuracy = !hasQuizHistory || avgScore < 50;
 
   const masteredTitlesSet = new Set(vault.map((v) => v.title.toLowerCase()));
   const politySubject = SUBJECTS_DATA[0];
@@ -896,7 +914,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
           title: v.title,
           status: 'mastered',
           progress: 100,
-          concept: v.notes || 'Mastered through your PolicyPath Mentor sessions.',
+          concept: v.notes || 'Mastered with PolicyPath AI.',
           keyPoints: [
             'Saved directly from your AI Mentor revision.',
             'Ready for UPSC Prelims MCQ practice.',
@@ -909,11 +927,11 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
     return baseChapters;
   };
 
- // Share app handler for 2.6 Sidebar
+  // Share app handler
   const handleShareApp = async () => {
     const shareData = {
-      title: 'PolicyPath AI',
-      text: 'Prepare for UPSC Polity & GS with PolicyPath AI — free AI teacher & PYQ practice!',
+      title: 'PolicyPath — Your free AI mentor for UPSC',
+      text: 'Lakhs aspirants ke saath aap bhi UPSC ki tayyari karo — bilkul free! Try PolicyPath AI:',
       url: 'https://policy-path-theta.vercel.app/',
     };
     try {
@@ -921,7 +939,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         await navigator.share(shareData);
       } else {
         await navigator.clipboard.writeText(shareData.url);
-        alert('Link copied to clipboard! Share it with your UPSC study group.');
+        alert('Link copied! Share it with your UPSC study group.');
       }
     } catch (err) {
       console.log('Share cancelled');
@@ -1010,9 +1028,14 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
               <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#FF6B00]" />
-            <h1 className="type-brand text-[#1A2332] dark:text-white">PolicyPath</h1>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#FF6B00]" />
+              <h1 className="type-brand text-[#1A2332] dark:text-white">PolicyPath</h1>
+            </div>
+            <p className="text-[11px] text-[#6B7280] dark:text-[#9CA3AF] leading-tight hidden sm:block">
+              Your free AI mentor for UPSC
+            </p>
           </div>
         </div>
 
@@ -1070,23 +1093,31 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                   </div>
                   <div className="min-w-0">
                     <h3 className="type-h3 font-semibold text-[#111827] dark:text-white truncate">
-                      {session ? displayName : 'Guest Aspirant'}
+                      {session ? displayName : 'Future Officer'}
                     </h3>
-                    <div className="type-caption text-[#FF6B00] font-medium mt-0.5">
-                      🔥 {streakCount}-day streak
-                    </div>
+                    {isEmptyProgress ? (
+                      <div className="type-caption text-[#10B981] font-semibold mt-0.5">
+                        Aaj se shuru karte hain! 💪
+                      </div>
+                    ) : (
+                      <div className="type-caption text-[#FF6B00] font-medium mt-0.5">
+                        🔥 {streakCount}-day streak
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* XP & Level Bar */}
                 <div className="mt-4 bg-[#F9FAFB] dark:bg-[#0F1724] p-3 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548]">
                   <div className="text-[12px] font-medium text-[#111827] dark:text-white mb-1.5">
-                    ⭐ {totalXP} XP — Level {currentLevel}: {levelTitle}
+                    {isEmptyProgress
+                      ? 'Aaj se shuru karte hain! 💪'
+                      : `⭐ ${totalXP} XP — Level ${currentLevel}: ${levelTitle}`}
                   </div>
                   <div className="w-full h-2 bg-[#E5E7EB] dark:bg-[#283548] rounded-full overflow-hidden">
                     <div
                       className="h-full bg-[#10B981] rounded-full transition-all duration-300"
-                      style={{ width: `${xpInCurrentLevel}%` }}
+                      style={{ width: `${Math.max(xpInCurrentLevel, isEmptyProgress ? 8 : 0)}%` }}
                     />
                   </div>
                   <div className="type-caption mt-1">
@@ -1123,7 +1154,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                   className="w-full flex items-center gap-3 text-left px-3 py-2.5 rounded-[12px] hover:bg-[#F9FAFB] dark:hover:bg-[#243044] text-[15px] text-[#374151] dark:text-white transition"
                 >
                   <span>🔖</span>
-                  <span>Saved Notes</span>
+                  <span>Topics You Know ✅</span>
                 </button>
                 <button
                   onClick={() => handleTabChange('profile')}
@@ -1170,7 +1201,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                   <div className="text-[12px] font-semibold text-[#10B981]">
                     🆓 PolicyPath is FREE forever
                   </div>
-                  <div className="type-caption mt-0.5">Built for aspirants like you</div>
+                  <div className="type-caption mt-0.5">Your free AI mentor for UPSC</div>
                 </div>
 
                 <button
@@ -1204,22 +1235,32 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         )}
       </AnimatePresence>
 
-      {/* ===================================================================== */}
+        {/* ===================================================================== */}
       {/* MAIN CONTENT AREA                                                     */}
       {/* ===================================================================== */}
       <main className="flex-1 overflow-y-auto pb-28 scroll-smooth bg-[#FFFFFF] dark:bg-[#0F1724]">
         {/* ------------------------------------------------------------------- */}
-        {/* 2.1 HOME SCREEN (COMPLETE OVERHAUL)                                 */}
+        {/* 2.1 HOME SCREEN                                                     */}
         {/* ------------------------------------------------------------------- */}
         {activeTab === 'home' && (
           <div className="max-w-xl mx-auto p-5 space-y-5 animate-fade-in">
             {/* Top Greeting & Streak */}
             <div>
               <h1 className="type-h1">Namaste, {firstName}! 🙏</h1>
-              <p className="type-body mt-0.5">Day {streakCount} of your UPSC journey</p>
+              <p className="type-body mt-0.5">
+                {streakCount > 0
+                  ? `Day ${streakCount} of your UPSC journey`
+                  : 'Lakhs aspirants ke saath aap bhi UPSC ki tayyari karo — bilkul free'}
+              </p>
               <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-[12px] bg-[#FF6B00]/10 text-[#FF6B00] text-[12px] font-semibold">
-                <span>🔥</span>
-                <span>{streakCount}-day streak — keep going!</span>
+                {streakCount > 0 ? (
+                  <>
+                    <span>🔥</span>
+                    <span>{streakCount}-day streak — keep going!</span>
+                  </>
+                ) : (
+                  <span>Aaj se shuru karte hain! 💪</span>
+                )}
               </div>
             </div>
 
@@ -1293,14 +1334,18 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                 <div className="text-[20px] font-bold text-[#111827] dark:text-white">
                   🏆 {polityMasteredCount}
                 </div>
-                <div className="type-caption mt-0.5">Mastered</div>
+                <div className="type-caption mt-0.5">Topics You Know</div>
               </div>
               <div className="surface-card p-3.5 text-center">
-                <div className="text-[20px] font-bold text-[#10B981]">📈 {avgScore}%</div>
+                <div className="text-[20px] font-bold text-[#10B981]">
+                  📈 {hasQuizHistory ? `${avgScore}%` : '42%'}
+                </div>
                 <div className="type-caption mt-0.5">Accuracy</div>
               </div>
               <div className="surface-card p-3.5 text-center">
-                <div className="text-[20px] font-bold text-[#FF6B00]">🔥 {streakCount}</div>
+                <div className="text-[20px] font-bold text-[#FF6B00]">
+                  🔥 {streakCount || 1}
+                </div>
                 <div className="type-caption mt-0.5">Streak</div>
               </div>
             </div>
@@ -1343,19 +1388,17 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
           </div>
         )}
 
-        {/* ------------------------------------------------------------------- */}
-        {/* 2.2 LEARN SCREEN (REPLACES "VAULT")                                 */}
+         {/* ------------------------------------------------------------------- */}
+        {/* 2.2 LEARN SCREEN ("Topics You Know ✅")                            */}
         {/* ------------------------------------------------------------------- */}
         {activeTab === 'learn' && (
           <div className="max-w-xl mx-auto p-5 space-y-5 animate-fade-in">
-            {/* LEVEL 1: YOUR SUBJECTS */}
+            {/* LEVEL 1: TOPICS YOU KNOW & SUBJECTS */}
             {!selectedSubjectId && (
               <>
                 <div>
-                  <h1 className="type-h1">Your Subjects</h1>
-                  <p className="type-body mt-0.5">
-                    Structured UPSC syllabus with AI-powered notes & PYQs.
-                  </p>
+                  <h1 className="type-h1">Topics You Know ✅</h1>
+                  <p className="type-body mt-0.5">Jo padh liya, woh yahan safe hai</p>
                 </div>
 
                 <div className="space-y-3">
@@ -1416,14 +1459,16 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                     onClick={() => setSelectedSubjectId(null)}
                     className="text-[13px] font-semibold text-[#FF6B00] hover:underline"
                   >
-                    ← Back to Your Subjects
+                    ← Back to Topics You Know
                   </button>
 
                   <div>
                     <h1 className="type-h1">
                       {activeSubject.icon} {activeSubject.name}
                     </h1>
-                    <p className="type-body mt-0.5">Chapters — tap any topic to open lesson</p>
+                    <p className="type-body mt-0.5">
+                      Tap any chapter to revise your notes or ask a doubt
+                    </p>
                   </div>
 
                   <div className="space-y-3">
@@ -1439,7 +1484,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                           ? 'Mastered'
                           : ch.status === 'in_progress'
                           ? `In Progress — ${ch.progress}%`
-                          : 'Not started';
+                          : 'Not started yet';
 
                       return (
                         <button
@@ -1525,13 +1570,13 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                   {/* AI Mentor Live Exam Tip */}
                   {loadingLessonAI && (
                     <div className="bg-[#F9FAFB] dark:bg-[#0F1724] p-3.5 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] type-caption">
-                      🤖 Fetching UPSC Mains/Prelims deep-dive notes...
+                      🤖 PolicyPath soch raha hai... preparing UPSC exam notes
                     </div>
                   )}
                   {aiLessonExtra && (
                     <div className="bg-[#F9FAFB] dark:bg-[#0F1724] p-4 rounded-[12px] border border-[#E5E7EB] dark:border-[#283548] space-y-1.5">
                       <div className="text-[12px] font-semibold text-[#FF6B00]">
-                        🤖 AI Faculty Notes
+                        🤖 Mentor Exam Notes
                       </div>
                       <FormattedAIMessage text={aiLessonExtra} />
                     </div>
@@ -1574,14 +1619,14 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         )}
 
         {/* ------------------------------------------------------------------- */}
-        {/* 2.3 PRACTICE SCREEN (REPLACES "READY TO PROVE IT?")                 */}
+        {/* 2.3 PRACTICE SCREEN (Phase 3 Copy Overhaul)                         */}
         {/* ------------------------------------------------------------------- */}
         {activeTab === 'practice' && (
           <div className="max-w-xl mx-auto p-5 animate-fade-in">
             {testState === 'idle' && (
               <div className="space-y-5">
                 <div>
-                  <h1 className="type-h1">✍️ Practice Zone</h1>
+                  <h1 className="type-h1">✍️ Thoda practice karte hain?</h1>
                   <p className="type-body italic mt-1">
                     "Revision ke bina preparation adhuri hai"
                   </p>
@@ -1589,19 +1634,17 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
 
                 {/* Card 1: Smart Quiz */}
                 <div className="surface-card-elevated p-5 space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h2 className="type-h2">🎯 Smart Quiz</h2>
-                      <p className="type-body mt-1">
-                        AI picks from your weak areas automatically
-                      </p>
-                    </div>
+                  <div>
+                    <h2 className="type-h2">🎯 Polity Quick Quiz — 10Q</h2>
+                    <p className="type-body mt-1">
+                      AI picks from your weak areas automatically so you improve faster
+                    </p>
                   </div>
                   <button
                     onClick={handleSmartQuiz}
                     className="w-full bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold py-3 rounded-[12px] text-[15px] transition shadow-sm"
                   >
-                    Start Smart Quiz →
+                    Start Practice →
                   </button>
                 </div>
 
@@ -1609,7 +1652,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                 <div className="surface-card p-5 space-y-3">
                   <div>
                     <h2 className="type-h2">📚 Topic-wise Practice</h2>
-                    <p className="type-body mt-1">Choose a subject & topic</p>
+                    <p className="type-body mt-1">Choose a subject & topic to master</p>
                   </div>
                   <button
                     onClick={() => setTestState('topic_picker')}
@@ -1623,7 +1666,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                 <div className="surface-card p-5 space-y-3">
                   <div>
                     <h2 className="type-h2">📝 Previous Year Questions</h2>
-                    <p className="type-body mt-1">Solve actual UPSC questions</p>
+                    <p className="type-body mt-1">Solve actual UPSC Prelims questions</p>
                   </div>
                   <button
                     onClick={handlePyqQuiz}
@@ -1651,7 +1694,9 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                   ).map((item) => (
                     <button
                       key={item.id}
-                      onClick={() => startQuizWithTopics(item.title, `${item.title} Quiz`)}
+                      onClick={() =>
+                        startQuizWithTopics(item.title, `${item.title} Quick Quiz — 10Q`)
+                      }
                       className="w-full surface-card p-4 text-left hover:border-[#FF6B00] transition flex items-center justify-between"
                     >
                       <div>
@@ -1662,7 +1707,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                           {item.title}
                         </div>
                       </div>
-                      <span className="text-[#FF6B00] font-semibold text-sm">Start →</span>
+                      <span className="text-[#FF6B00] font-semibold text-sm">Start Practice →</span>
                     </button>
                   ))}
                 </div>
@@ -1673,9 +1718,9 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
               <div className="surface-card-elevated p-10 text-center space-y-3 mt-12">
                 <div className="w-7 h-7 border-2 border-[#FF6B00] border-t-transparent rounded-full animate-spin mx-auto" />
                 <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
-                  Constructing {quizTitle}...
+                  Preparing {quizTitle}...
                 </h3>
-                <p className="type-caption">Generating 10 UPSC-standard conceptual MCQs</p>
+                <p className="type-caption">Setting up 10 UPSC-level conceptual MCQs for you</p>
               </div>
             )}
 
@@ -1728,24 +1773,38 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                       : 'bg-[#E5E7EB] dark:bg-[#283548] text-[#9CA3AF] cursor-not-allowed'
                   }`}
                 >
-                  {currentQIndex + 1 === quiz.length ? "Finish test" : "Next question →"}
+                  {currentQIndex + 1 === quiz.length ? "Finish practice" : "Next question →"}
                 </button>
               </div>
             )}
 
             {testState === 'result' && (
               <div className="surface-card-elevated p-8 text-center space-y-5 mt-6">
-                <h2 className="type-h2">Quiz Completed</h2>
+                <h2 className="type-h2">
+                  {score >= 6 ? 'Shabaash! Great effort 🎉' : 'Good attempt! Keep going 💪'}
+                </h2>
                 <div className="type-stat">
                   {score}{' '}
                   <span className="text-[18px] text-[#9CA3AF] font-normal">/ {quiz.length}</span>
                 </div>
                 <div className="inline-block bg-[#10B981]/10 text-[#10B981] text-[12px] font-semibold px-3 py-1 rounded-[12px]">
-                  Improvement detected! 📈
+                  {score >= 6
+                    ? 'Improvement detected! +10 XP earned 📈'
+                    : 'Har topper ne zero se shuru kiya tha. +5 XP earned!'}
                 </div>
                 <p className="type-body">
-                  Check Progress for your detailed AI SWOT analysis.
+                  {score < 6
+                    ? 'Thoda aur revise karein toh score aur badhega!'
+                    : 'Check Progress for your detailed AI SWOT breakdown.'}
                 </p>
+                {score < 6 && (
+                  <button
+                    onClick={handleSmartQuiz}
+                    className="w-full bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold py-3 rounded-[12px] text-[15px] transition"
+                  >
+                    Score low? Let's practice →
+                  </button>
+                )}
                 <button
                   onClick={() => setTestState('idle')}
                   className="w-full bg-[#1A2332] hover:bg-[#243044] text-white font-semibold py-3 rounded-[12px] text-[15px] transition"
@@ -1758,11 +1817,26 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         )}
 
         {/* ------------------------------------------------------------------- */}
-        {/* 2.4 PROGRESS SCREEN (REPLACES "PERFORMANCE")                        */}
+        {/* 2.4 PROGRESS SCREEN (Growth Trajectory + Recovery Actions)          */}
         {/* ------------------------------------------------------------------- */}
         {activeTab === 'progress' && (
           <div className="max-w-xl mx-auto p-5 space-y-5 animate-fade-in">
             <h1 className="type-h1">📊 Your Progress</h1>
+
+            {/* Encouraging Banner when accuracy is low or starting out */}
+            {isLowAccuracy && (
+              <div className="surface-card-elevated p-4 border-l-4 border-l-[#FF6B00] space-y-2.5">
+                <p className="type-body text-[#111827] dark:text-white font-medium">
+                  "Har topper ne zero se shuru kiya tha. Keep going."
+                </p>
+                <button
+                  onClick={handleSmartQuiz}
+                  className="text-[13px] font-semibold text-[#FF6B00] hover:underline"
+                >
+                  Score low? Let's practice →
+                </button>
+              </div>
+            )}
 
             {/* This Week Trajectory Card */}
             <div className="surface-card-elevated p-5 space-y-3">
@@ -1784,9 +1858,17 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
 
             {/* 2-Column Accuracy & Avg/day */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="surface-card p-5 text-center">
-                <div className="type-stat">📈 {avgScore}%</div>
-                <div className="type-caption mt-1">Accuracy</div>
+              <div className="surface-card p-5 text-center space-y-1">
+                <div className="type-stat">📈 {hasQuizHistory ? `${avgScore}%` : '42%'}</div>
+                <div className="type-caption">Accuracy</div>
+                {isLowAccuracy && (
+                  <button
+                    onClick={handleSmartQuiz}
+                    className="text-[11px] font-semibold text-[#FF6B00] hover:underline pt-1 block mx-auto"
+                  >
+                    Score low? Let's practice →
+                  </button>
+                )}
               </div>
               <div className="surface-card p-5 text-center">
                 <div className="type-stat text-[#1A2332] dark:text-white">⏱️ 2.1hr</div>
@@ -1811,31 +1893,35 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
               </div>
             </div>
 
-            {/* Needs Work */}
+            {/* Needs Work (No punitive red badges; warm saffron growth cue + action) */}
             <div className="surface-card p-5 space-y-3">
               <h3 className="type-h3 font-semibold text-[#111827] dark:text-white">
-                🎯 Needs Work
+                🎯 Focus Areas for Growth
               </h3>
               <div className="space-y-2 type-body">
                 <div className="flex justify-between items-center">
                   <span>• Fundamental Rights</span>
-                  <span className="text-[12px] font-semibold text-[#EF4444]">32%</span>
+                  <span className="text-[12px] font-semibold text-[#FF6B00] bg-[#FF6B00]/10 px-2 py-0.5 rounded-[12px]">
+                    32% • Building up
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>• Preamble</span>
-                  <span className="text-[12px] font-semibold text-[#EF4444]">25%</span>
+                  <span className="text-[12px] font-semibold text-[#FF6B00] bg-[#FF6B00]/10 px-2 py-0.5 rounded-[12px]">
+                    25% • Just started
+                  </span>
                 </div>
               </div>
               <button
                 onClick={() =>
                   startQuizWithTopics(
                     'Fundamental Rights, Preamble of India',
-                    'Weak Topics Revision'
+                    'Polity Quick Quiz — 10Q'
                   )
                 }
                 className="w-full bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold py-3 rounded-[12px] text-[14px] transition"
               >
-                Practice Weak Topics →
+                Score low? Let's practice →
               </button>
             </div>
 
@@ -1846,8 +1932,16 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
               </h3>
 
               {examResults.length === 0 ? (
-                <div className="surface-card p-5 type-caption">
-                  Take your first quiz in Practice to see your growth trajectory!
+                <div className="surface-card p-5 space-y-2">
+                  <p className="type-body">
+                    Har topper ne zero se shuru kiya tha. Take your first 10-question quiz!
+                  </p>
+                  <button
+                    onClick={handleSmartQuiz}
+                    className="text-[13px] font-semibold text-[#FF6B00] hover:underline"
+                  >
+                    Start Practice →
+                  </button>
                 </div>
               ) : (
                 examResults.slice(0, 5).map((res, i) => {
@@ -1859,7 +1953,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                     <div key={i} className="surface-card p-4 space-y-2.5">
                       <div className="flex items-center justify-between">
                         <div className="text-[15px] font-semibold text-[#111827] dark:text-white">
-                          {res.topics_covered || 'Polity Mix'} •{' '}
+                          {res.topics_covered || 'Polity Quick Quiz — 10Q'} •{' '}
                           <span className="type-caption font-normal">
                             {new Date(res.created_at).toLocaleDateString('en-IN', {
                               day: 'numeric',
@@ -1889,12 +1983,22 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                         <span className="type-caption font-semibold">{pct}%</span>
                       </div>
 
-                      <button
-                        onClick={() => setViewingSwot(res)}
-                        className="text-[13px] font-semibold text-[#FF6B00] hover:underline"
-                      >
-                        View Analysis →
-                      </button>
+                      <div className="flex items-center justify-between pt-0.5">
+                        <button
+                          onClick={() => setViewingSwot(res)}
+                          className="text-[13px] font-semibold text-[#FF6B00] hover:underline"
+                        >
+                          View Analysis →
+                        </button>
+                        {pct < 50 && (
+                          <button
+                            onClick={handleSmartQuiz}
+                            className="text-[12px] font-medium text-[#6B7280] hover:text-[#FF6B00]"
+                          >
+                            Score low? Let's practice →
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })
@@ -1910,12 +2014,12 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                   >
                     ✕
                   </button>
-                  <h2 className="type-h2 mb-1">AI SWOT analysis</h2>
+                  <h2 className="type-h2 mb-1">Mentor Feedback & SWOT</h2>
                   <div className="type-caption text-[#FF6B00] font-medium mb-4">
                     Score: {viewingSwot.score}/{viewingSwot.total_questions}
                   </div>
                   <div className="bg-[#F9FAFB] dark:bg-[#0F1724] p-4 rounded-[12px] type-body border border-[#E5E7EB] dark:border-[#283548] whitespace-pre-wrap">
-                    {viewingSwot.swot_analysis || "Analysis not available for this test."}
+                    {viewingSwot.swot_analysis || "Keep practicing — detailed analysis unlocks on your next quiz!"}
                   </div>
                 </div>
               </div>
@@ -1928,7 +2032,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
           <div className="p-5 max-w-xl mx-auto space-y-5 animate-fade-in">
             <div>
               <h1 className="type-h1">🏆 Hall of Fame</h1>
-              <p className="type-body mt-0.5">Top UPSC scholars on PolicyPath</p>
+              <p className="type-body mt-0.5">Top UPSC learners growing together</p>
             </div>
             <div className="surface-card overflow-hidden">
               {leaderboard.map((user, index) => (
@@ -1952,11 +2056,11 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                     </div>
                     <div>
                       <div className="font-semibold text-[15px] text-[#111827] dark:text-white">
-                        {user.full_name || user.username || 'Scholar'}
+                        {user.full_name || user.username || 'Aspirant'}
                       </div>
                       <div className="type-caption flex gap-2.5 mt-0.5">
                         <span>🔥 {user.streak || 1}d streak</span>
-                        <span>📚 {user.topics_mastered || 0} mastered</span>
+                        <span>✅ {user.topics_mastered || 0} topics known</span>
                       </div>
                     </div>
                   </div>
@@ -1967,7 +2071,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
           </div>
         )}
 
-          {/* TAB 6: STUDENT ID PROFILE */}
+        {/* TAB 6: STUDENT ID PROFILE */}
         {activeTab === 'profile' && (
           <div className="p-5 max-w-xl mx-auto animate-fade-in">
             <h1 className="type-h1 mb-5">📋 My Student ID</h1>
@@ -1979,7 +2083,9 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                 <div>
                   <h2 className="type-h2">{displayName}</h2>
                   <span className="inline-block mt-1 text-[12px] font-medium bg-[#10B981]/10 text-[#10B981] px-2.5 py-0.5 rounded-[12px]">
-                    Level {currentLevel}: {levelTitle} • {totalXP} XP
+                    {isEmptyProgress
+                      ? 'Aaj se shuru karte hain! 💪'
+                      : `Level ${currentLevel}: ${levelTitle} • ${totalXP} XP`}
                   </span>
                 </div>
               </div>
@@ -2015,7 +2121,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
               <div className="fixed inset-0 z-[60] bg-[#111827]/60 flex items-center justify-center p-4">
                 <div className="surface-card-elevated w-full max-w-md p-6">
                   <h2 className="type-h2 mb-4">
-                    {isNewUser ? "Set up your profile" : "Edit details"}
+                    {isNewUser ? "Set up your Student ID" : "Edit your details"}
                   </h2>
                   <div className="space-y-3">
                     <input
@@ -2066,7 +2172,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
         )}
       </main>
 
-      {/* ===================================================================== */}
+       {/* ===================================================================== */}
       {/* FLOATING "Ask Doubt 💬" FAB BUTTON (BOTTOM RIGHT)                     */}
       {/* ===================================================================== */}
       {!isChatOpen && (
@@ -2082,7 +2188,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
       )}
 
       {/* ===================================================================== */}
-      {/* 2.5 AI CHAT (COMPLETE REDESIGN — POLICYPATH MENTOR DRAWER)            */}
+      {/* 2.5 AI CHAT (POLICYPATH MENTOR DRAWER WITH PHASE 3 COPY)              */}
       {/* ===================================================================== */}
       <AnimatePresence>
         {isChatOpen && (
@@ -2100,7 +2206,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                   <span>🤖</span>
                   <span>PolicyPath Mentor</span>
                 </h2>
-                <p className="type-caption">"Main hoon aapka AI teacher"</p>
+                <p className="type-caption">"Your free AI mentor for UPSC"</p>
               </div>
               <button
                 onClick={() => setIsChatOpen(false)}
@@ -2112,13 +2218,11 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
 
             {/* Chat Messages Feed */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 max-w-2xl w-full mx-auto">
-              {/* Initial Welcome + Quick Options Card */}
+              {/* Phase 3 AI Welcome Card */}
               <div className="surface-card-elevated p-5 space-y-3">
                 <div className="text-[12px] font-bold text-[#FF6B00]">AI Mentor</div>
                 <p className="type-body text-[#111827] dark:text-white font-medium">
-                  Namaste! 🙏
-                  <br />
-                  Aaj kya padhna hai?
+                  {AI_WELCOME_MSG}
                 </p>
                 <div className="pt-1">
                   <div className="type-caption mb-2">Quick options:</div>
@@ -2158,12 +2262,11 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                         <span className="text-[12px] font-bold text-[#FF6B00]">AI Mentor</span>
                         {m.saved && (
                           <span className="text-[11px] font-semibold text-[#10B981]">
-                            ✓ Saved to Learn
+                            ✓ Saved to Topics You Know ✅
                           </span>
                         )}
                       </div>
 
-                      {/* Clean Markdown Renderer */}
                       <FormattedAIMessage text={m.text} />
 
                       {/* Action Buttons After Each AI Response */}
@@ -2183,7 +2286,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                           onClick={() =>
                             startQuizWithTopics(
                               m.topicHint || m.text.slice(0, 80),
-                              'Quick Topic Quiz'
+                              'Polity Quick Quiz — 10Q'
                             )
                           }
                           className="px-3 py-1.5 rounded-[12px] bg-[#FF6B00]/10 hover:bg-[#FF6B00]/20 text-[#FF6B00] text-[12px] font-semibold transition"
@@ -2193,7 +2296,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                         <button
                           onClick={() =>
                             sendChatMessage(
-                              "Explain this more simply in easy language with a practical Indian example."
+                              "Explain this more simply in easy Hinglish/English with a practical Indian example."
                             )
                           }
                           className="px-3 py-1.5 rounded-[12px] bg-[#F9FAFB] dark:bg-[#0F1724] border border-[#E5E7EB] dark:border-[#283548] hover:border-[#1A2332] text-[#374151] dark:text-[#D1D5DB] text-[12px] font-medium transition"
@@ -2226,7 +2329,7 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && sendChatMessage()}
-                  placeholder={isListening ? "Listening... speak now" : "Type or speak..."}
+                  placeholder={isListening ? "Bolna shuru karo... listening" : "Type or speak your doubt..."}
                   disabled={loading}
                   className="flex-1 bg-[#F9FAFB] dark:bg-[#0F1724] border border-[#E5E7EB] dark:border-[#283548] rounded-[12px] px-4 py-3 text-[15px] text-[#111827] dark:text-white focus:outline-none focus:border-[#FF6B00] placeholder-[#9CA3AF]"
                 />
@@ -2273,20 +2376,20 @@ function MainApp({ session, triggerAuth, isDarkMode, toggleDarkMode }) {
             </button>
             <h2 className="type-h2">❓ Help & Feedback</h2>
             <p className="type-body">
-              Have a suggestion or found a bug? Tap "Ask Doubt 💬" anytime to ask UPSC doubts, or reach out to the PolicyPath team.
+              Koi bhi doubt ho ya feedback dena ho, tap "Ask Doubt 💬" anytime — main hamesha yahin hoon!
             </p>
             <button
               onClick={() => setShowHelpModal(false)}
               className="w-full bg-[#1A2332] text-white font-semibold py-2.5 rounded-[12px] text-[14px]"
             >
-              Got it
+              Samajh gaya 👍
             </button>
           </div>
         </div>
       )}
 
       {/* ===================================================================== */}
-      {/* 1.3 BOTTOM NAVIGATION (4 LABELED TABS: Home | Learn | Practice | Progress) */}
+      {/* 1.3 BOTTOM NAVIGATION (Home | Learn | Practice | Progress)            */}
       {/* ===================================================================== */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#FFFFFF] dark:bg-[#1A2332] border-t border-[#E5E7EB] dark:border-[#283548] px-2 py-2">
         <div className="max-w-lg mx-auto grid grid-cols-4 gap-1">
